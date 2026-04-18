@@ -1,4 +1,4 @@
-# precitrus
+# spyglass
 
 Inline fact-check badges on X / Twitter, plus a public live-feed dashboard.
 One `GEMINI_API_KEY` powers everything: **Gemma 4** for neutralization and
