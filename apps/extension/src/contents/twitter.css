@@ -1,0 +1,6 @@
+/* Inline styles live in components; this stylesheet only resets the
+   container so Plasmo's CSUI host doesn't inherit X's tight typography. */
+:host {
+  all: initial;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
