@@ -14,11 +14,19 @@ node_modules/
 .next/
 .vercel/
 
+<<<<<<< Updated upstream
 # Plasmo
 apps/extension/build/
 apps/extension/.plasmo/
 
 # OS / IDE
+=======
+# Plasmo build output
+apps/extension/build/
+apps/extension/.plasmo/
+
+# macOS / IDE
+>>>>>>> Stashed changes
 .DS_Store
 .idea/
 .vscode/
