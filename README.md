@@ -40,11 +40,18 @@ and adds `tweets` to the `supabase_realtime` publication.
 
 ## 2. API
 
+Use **Python 3.11–3.13** (not 3.14 yet — wheels for `pydantic-core` / native deps
+may not be available, and source builds can fail). If `python3 --version` shows
+3.14, install 3.12 via Homebrew (`brew install python@3.12`) or pyenv and point
+your venv at that interpreter.
+
 ```
 cd apps/api
 cp .env.example .env       # fill in GEMINI_API_KEY + SUPABASE_*
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+python3.12 -m venv .venv     # or: python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
 
 Endpoints:
