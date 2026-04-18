@@ -1,0 +1,24 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    gemini_api_key: str = ""
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
+    allowed_origins: str = "http://localhost:3000"
+
+    gemma_rewrite_model: str = "gemma-4-26b-a4b-it"
+    gemma_extract_model: str = "gemma-4-26b-a4b-it"
+    gemini_verify_model: str = "gemini-2.5-flash"
+
+    verify_concurrency: int = 3
+    request_timeout_s: float = 30.0
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
