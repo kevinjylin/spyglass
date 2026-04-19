@@ -134,6 +134,10 @@ def _tweet_context_payload(
     if metadata_captured_at:
         payload["metadata_captured_at"] = metadata_captured_at
 
+    posted_at = _clean_metadata_ts(tweet_context.posted_at)
+    if posted_at:
+        payload["posted_at"] = posted_at
+
     return payload
 
 

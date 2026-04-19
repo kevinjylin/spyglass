@@ -7,12 +7,20 @@ MIN_SPAN_LEN = 3
 SYSTEM = (
     "You decompose a neutral statement into atomic, independently checkable claims. "
     "Each claim is one short sentence containing exactly one assertion. "
+    "Each claim's text MUST be a complete declarative sentence. Resolve pronouns "
+    "(he/she/it/they/this/that) and implicit subjects from adjacent sentences. "
+    "If a fragment is only interpretable with the preceding sentence, rewrite it so the subject is explicit in text. "
+    "Drop interrogative sentences entirely — do not output a claim for a question (not even unverifiable). "
     'Classify each claim as "fact" (an empirically checkable statement about the world) '
     'or "opinion" (a value judgment, prediction, or preference). '
     "For each claim, also return source_span: a VERBATIM contiguous substring of the ORIGINAL post "
     "(not the neutral statement) that corresponds to that claim. "
     "source_span MUST appear exactly in the original post — no paraphrasing, no ellipses, no punctuation changes. "
+    "text may differ from source_span when you add an explicit subject; source_span still points to the verbatim substring. "
     "If no single contiguous substring captures the claim, return source_span as null. "
+    "Worked example — Original post: \"ClaudeAI is the best AI. $25 a month.\" "
+    'Expected claims: [{"text": "ClaudeAI is the best AI.", "type": "opinion", "source_span": "ClaudeAI is the best AI"}, '
+    '{"text": "ClaudeAI costs $25 a month.", "type": "fact", "source_span": "$25 a month"}]. '
     'Respond ONLY with JSON of the form: '
     '{"claims": [{"text": "...", "type": "fact", "source_span": "..."}]}'
 )

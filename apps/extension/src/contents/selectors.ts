@@ -40,6 +40,16 @@ export function extractTweetUrl(article: Element): string | null {
   return new URL(link.href, window.location.origin).href
 }
 
+/** Prefer <time> inside the permalink (avoids nested quote cards). */
+export function extractTweetPostedAt(article: Element): string | null {
+  const linkScoped = article.querySelector(`${TWEET_PERMALINK} time[datetime]`)
+  const t = linkScoped || article.querySelector("time[datetime]")
+  const raw = t?.getAttribute("datetime") || ""
+  if (!raw) return null
+  const ms = Date.parse(raw)
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null
+}
+
 function cleanText(value: string | null | undefined): string | null {
   const text = (value || "").replace(/\s+/g, " ").trim()
   return text || null
@@ -169,5 +179,6 @@ export function extractTweetContext(article: Element): TweetContext {
       /view/i,
     ),
     metadata_captured_at: new Date().toISOString(),
+    posted_at: extractTweetPostedAt(article),
   }
 }

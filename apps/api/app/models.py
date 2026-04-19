@@ -24,6 +24,7 @@ class TweetContext(BaseModel):
     like_count: int | None = None
     view_count: int | None = None
     metadata_captured_at: str | None = None
+    posted_at: str | None = None
 
 
 class CheckRequest(BaseModel):

@@ -22,7 +22,8 @@ create table if not exists tweets (
   quote_count integer,
   reply_count integer,
   view_count integer,
-  metadata_captured_at timestamptz
+  metadata_captured_at timestamptz,
+  posted_at timestamptz
 );
 
 -- Back-fill columns on existing deployments
@@ -38,6 +39,7 @@ alter table tweets add column if not exists quote_count integer;
 alter table tweets add column if not exists reply_count integer;
 alter table tweets add column if not exists view_count integer;
 alter table tweets add column if not exists metadata_captured_at timestamptz;
+alter table tweets add column if not exists posted_at timestamptz;
 
 create table if not exists claims (
   id bigserial primary key,

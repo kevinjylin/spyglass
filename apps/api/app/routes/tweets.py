@@ -27,7 +27,8 @@ async def check_tweet(req: CheckRequest, background: BackgroundTasks) -> CheckRe
         return cached
 
     try:
-        response = await run_pipeline(req.tweet_id, req.text)
+        posted_at = req.tweet_context.posted_at if req.tweet_context else None
+        response = await run_pipeline(req.tweet_id, req.text, posted_at=posted_at)
     except Exception as exc:  # noqa: BLE001
         logger.exception("pipeline failed")
         raise HTTPException(status_code=502, detail=f"pipeline error: {exc}") from exc

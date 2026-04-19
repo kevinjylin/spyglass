@@ -46,6 +46,8 @@ export interface TweetContext {
   like_count?: number | null
   view_count?: number | null
   metadata_captured_at?: string | null
+  /** ISO 8601 from <time datetime="…"> */
+  posted_at?: string | null
 }
 
 export interface CheckRequest {
