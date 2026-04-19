@@ -22,12 +22,12 @@ export default async function HomePage() {
       >
         <StatCard
           caseId="001"
-          label="Tweets analyzed"
+          label="Last 24 Hours"
           value={stats.total_tweets.toLocaleString()}
         />
         <StatCard
           caseId="002"
-          label="Last 24 hours"
+          label="Tweets analyzed"
           value={stats.last_24h.toLocaleString()}
         />
         <StatCard
