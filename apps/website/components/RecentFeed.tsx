@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import type { TweetRow, Verdict } from "@/lib/types"
+import type { TweetLink, TweetRow, Verdict } from "@/lib/types"
 
 const VERDICT_STYLES: Record<Verdict, { bg: string; text: string; ring: string; label: string }> = {
   true:         { bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200", label: "True" },
@@ -79,6 +79,12 @@ const Icon = {
       <path d="M21 13v2a4 4 0 0 1-4 4H3" />
     </svg>
   ),
+  Quote: (p: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+      <path d="M3 21c3 0 6-2 6-6V5H3v10h4c0 2-1 4-4 4v2z" />
+      <path d="M15 21c3 0 6-2 6-6V5h-6v10h4c0 2-1 4-4 4v2z" />
+    </svg>
+  ),
   Like: (p: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -99,6 +105,19 @@ function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; la
       <span className="tabular-nums">{value}</span>
     </div>
   )
+}
+
+function normalizeLinks(links: TweetRow["links"]): TweetLink[] {
+  return Array.isArray(links) ? links.filter((link) => Boolean(link?.url)) : []
+}
+
+function linkLabel(link: TweetLink): string {
+  if (link.label?.trim()) return link.label.trim()
+  try {
+    return new URL(link.url).hostname.replace(/^www\./, "")
+  } catch {
+    return link.url
+  }
 }
 
 export function RecentFeed() {
@@ -171,10 +190,13 @@ function FeedCard({ row: r, now }: { row: TweetRow; now: number }) {
   const verdict = (r.overall_verdict ?? "unverifiable") as Verdict
   const style = VERDICT_STYLES[verdict] ?? VERDICT_STYLES.unverifiable
   const handle = r.author_handle ? `@${r.author_handle.replace(/^@/, "")}` : null
+  const authorLabel = r.author_name || handle || "Unknown"
+  const links = normalizeLinks(r.links).slice(0, 2)
 
   const stats: { icon: React.ReactNode; value: string; label: string }[] = []
   const reply = formatCompact(r.reply_count);   if (reply)   stats.push({ icon: <Icon.Reply className="h-3.5 w-3.5" />,   value: reply,   label: "Replies" })
   const rt    = formatCompact(r.retweet_count); if (rt)      stats.push({ icon: <Icon.Retweet className="h-3.5 w-3.5" />, value: rt,      label: "Retweets" })
+  const quote = formatCompact(r.quote_count);   if (quote)   stats.push({ icon: <Icon.Quote className="h-3.5 w-3.5" />,   value: quote,   label: "Quotes" })
   const like  = formatCompact(r.like_count);    if (like)    stats.push({ icon: <Icon.Like className="h-3.5 w-3.5" />,    value: like,    label: "Likes" })
   const views = formatCompact(r.view_count);    if (views)   stats.push({ icon: <Icon.Views className="h-3.5 w-3.5" />,   value: views,   label: "Views" })
 
@@ -191,16 +213,35 @@ function FeedCard({ row: r, now }: { row: TweetRow; now: number }) {
 
       {/* Body */}
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-5">
-        {(r.author_name || handle) && (
-          <div className="flex items-baseline gap-1.5 text-xs text-slate-500">
-            {r.author_name && <span className="font-medium text-slate-700">{r.author_name}</span>}
-            {handle && <span className="truncate">{handle}</span>}
+        {(r.author_name || handle || r.author_avatar_url) && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <AuthorAvatar name={authorLabel} url={r.author_avatar_url} />
+            <div className="min-w-0">
+              <div className="truncate font-medium text-slate-700">{authorLabel}</div>
+              {handle && r.author_name && <div className="truncate">{handle}</div>}
+            </div>
           </div>
         )}
 
         <p className="line-clamp-4 text-[15px] leading-snug text-slate-800">
           {r.neutral_text || r.text}
         </p>
+
+        {links.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {links.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="max-w-full truncate rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+              >
+                {linkLabel(link)}
+              </a>
+            ))}
+          </div>
+        )}
 
         {r.image_url && (
           <div className="relative mt-auto h-32 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
@@ -240,6 +281,31 @@ function FeedCard({ row: r, now }: { row: TweetRow; now: number }) {
         </div>
       </div>
     </article>
+  )
+}
+
+function AuthorAvatar({ name, url }: { name: string; url: string | null }) {
+  const [failed, setFailed] = useState(false)
+  const initial = name.replace(/^@/, "").charAt(0).toUpperCase() || "?"
+
+  if (url && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="h-8 w-8 flex-shrink-0 rounded-full bg-slate-100 object-cover"
+      />
+    )
+  }
+
+  return (
+    <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
+      {initial}
+    </div>
   )
 }
 

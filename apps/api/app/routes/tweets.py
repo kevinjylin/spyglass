@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from app.db import get_cached_tweet, persist_check
+from app.db import get_cached_tweet, persist_check, update_tweet_context
 from app.models import CheckRequest, CheckResponse
 from app.pipeline.orchestrator import run_pipeline
 
@@ -17,10 +17,18 @@ async def check_tweet(req: CheckRequest, background: BackgroundTasks) -> CheckRe
 
     cached = get_cached_tweet(req.tweet_id)
     if cached:
+        background.add_task(
+            update_tweet_context,
+            tweet_id=req.tweet_id,
+            author_handle=req.author_handle,
+            url=req.url,
+            tweet_context=req.tweet_context,
+        )
         return cached
 
     try:
-        response = await run_pipeline(req.tweet_id, req.text)
+        posted_at = req.tweet_context.posted_at if req.tweet_context else None
+        response = await run_pipeline(req.tweet_id, req.text, posted_at=posted_at)
     except Exception as exc:  # noqa: BLE001
         logger.exception("pipeline failed")
         raise HTTPException(status_code=502, detail=f"pipeline error: {exc}") from exc
@@ -31,6 +39,7 @@ async def check_tweet(req: CheckRequest, background: BackgroundTasks) -> CheckRe
         raw_text=req.text,
         author_handle=req.author_handle,
         url=req.url,
+        tweet_context=req.tweet_context,
         response=response,
     )
     return response

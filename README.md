@@ -75,7 +75,7 @@ Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service acc
 JSON key with Vertex permissions (typical for servers and Docker).
 
 Endpoints:
-- `POST /tweets/check` — body `{ tweet_id, text, author_handle?, url? }`
+- `POST /tweets/check` — body `{ tweet_id, text, author_handle?, url?, tweet_context? }`
 - `GET /stats`
 - `GET /healthz`
 

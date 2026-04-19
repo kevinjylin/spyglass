@@ -14,20 +14,32 @@ create table if not exists tweets (
   image_url text,
   author_handle text,
   author_name text,
+  author_avatar_url text,
+  media_urls jsonb,
+  links jsonb,
   like_count integer,
   retweet_count integer,
+  quote_count integer,
   reply_count integer,
-  view_count integer
+  view_count integer,
+  metadata_captured_at timestamptz,
+  posted_at timestamptz
 );
 
 -- Back-fill columns on existing deployments
 alter table tweets add column if not exists image_url text;
 alter table tweets add column if not exists author_handle text;
 alter table tweets add column if not exists author_name text;
+alter table tweets add column if not exists author_avatar_url text;
+alter table tweets add column if not exists media_urls jsonb;
+alter table tweets add column if not exists links jsonb;
 alter table tweets add column if not exists like_count integer;
 alter table tweets add column if not exists retweet_count integer;
+alter table tweets add column if not exists quote_count integer;
 alter table tweets add column if not exists reply_count integer;
 alter table tweets add column if not exists view_count integer;
+alter table tweets add column if not exists metadata_captured_at timestamptz;
+alter table tweets add column if not exists posted_at timestamptz;
 
 create table if not exists claims (
   id bigserial primary key,

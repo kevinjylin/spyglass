@@ -13,6 +13,11 @@ export interface DailyCount {
   count: number
 }
 
+export interface TweetLink {
+  url: string
+  label: string | null
+}
+
 export interface TweetRow {
   id: string
   text: string
@@ -23,12 +28,17 @@ export interface TweetRow {
   checked_at: string | null
   // Optional — populated if the extension/API captures them. Rendered when present.
   image_url: string | null
+  media_urls: string[] | null
+  links: TweetLink[] | null
   author_handle: string | null
   author_name: string | null
+  author_avatar_url: string | null
   like_count: number | null
   retweet_count: number | null
+  quote_count: number | null
   reply_count: number | null
   view_count: number | null
+  metadata_captured_at: string | null
 }
 
 export interface SiteStats {

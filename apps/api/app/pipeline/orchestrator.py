@@ -17,6 +17,18 @@ _ALLCAPS_WORD_RE = re.compile(r"\b[A-Z]{3,}\b")
 _MULTI_PUNCT_RE = re.compile(r"[!?]{2,}")
 _SARCASM_TOKENS = {"lol", "lmao", "lmfao", "smh", "rofl", "yikes"}
 _TOKEN_RE = re.compile(r"[a-z]+")
+_URL_RE = re.compile(r"https?://\S+")
+_MENTION_HASH_RE = re.compile(r"[@#]\w+")
+
+
+def _is_question_only(text: str) -> bool:
+    stripped = _MENTION_HASH_RE.sub(" ", _URL_RE.sub(" ", text)).strip()
+    if not stripped:
+        return False
+    terminals = re.findall(r"[.!?]+", stripped)
+    if not terminals:
+        return False  # no sentence terminator — let the pipeline decide
+    return all(t.endswith("?") for t in terminals)
 
 
 def _needs_neutralize(text: str) -> bool:
@@ -50,7 +62,23 @@ def _overall_verdict(claims: list[ClaimResult]) -> Verdict:
     return "true"
 
 
-async def run_pipeline(tweet_id: str, text: str) -> CheckResponse:
+async def run_pipeline(tweet_id: str, text: str, posted_at: str | None = None) -> CheckResponse:
+    if _is_question_only(text):
+        claim = ClaimResult(
+            text=text.strip(),
+            claim_type="fact",
+            verdict="unverifiable",
+            explanation="This tweet is a question; no verifiable claim was found.",
+            sources=[],
+        )
+        return CheckResponse(
+            tweet_id=tweet_id,
+            neutral_text=text,
+            overall_verdict="unverifiable",
+            claims=[claim],
+            cached=False,
+        )
+
     neutral = text if not _needs_neutralize(text) else await neutralize(text)
     raw = await extract_claims(neutral, text)
 
@@ -72,7 +100,7 @@ async def run_pipeline(tweet_id: str, text: str) -> CheckResponse:
                 source_span=source_span,
             )
         async with sem:
-            result = await verify_claim(ctext)
+            result = await verify_claim(ctext, posted_at=posted_at)
         return result.model_copy(update={"source_span": source_span})
 
     claims: list[ClaimResult] = list(await asyncio.gather(*[one(x) for x in raw])) if raw else []

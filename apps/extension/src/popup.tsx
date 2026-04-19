@@ -40,6 +40,7 @@ interface FeedItem {
   id: string
   author: string
   handle: string
+  avatarUrl: string | null
   text: string
   rawText: string
   verdict: Verdict
@@ -52,6 +53,8 @@ interface FeedItem {
 interface StoredFeedEntry {
   id: string
   handle: string | null
+  authorName?: string | null
+  authorAvatarUrl?: string | null
   text: string
   rawText?: string
   verdict: Verdict
@@ -65,10 +68,12 @@ const FEED_KEY = "feed"
 
 function toFeedItem(entry: StoredFeedEntry): FeedItem {
   const handle = entry.handle?.trim() || ""
+  const authorName = entry.authorName?.trim() || ""
   return {
     id: entry.id,
-    author: handle || "UNKNOWN",
+    author: authorName || handle || "UNKNOWN",
     handle: handle ? `@${handle}` : "",
+    avatarUrl: entry.authorAvatarUrl?.trim() || null,
     text: entry.text,
     rawText: entry.rawText || entry.text,
     verdict: entry.verdict,
@@ -353,23 +358,7 @@ function FeedCard({ item }: { item: FeedItem }) {
         <span>{timeAgo(item.checkedAt)}</span>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
-            flexShrink: 0,
-            background: `linear-gradient(135deg, ${BG} 0%, ${BORDER} 100%)`,
-            display: "grid",
-            placeItems: "center",
-            color: AMBER,
-            fontFamily: MONO,
-            fontWeight: 700,
-            fontSize: 13,
-            border: `1px solid ${BORDER_SOFT}`,
-          }}>
-          {item.author.charAt(0).toUpperCase()}
-        </div>
+        <FeedAvatar name={item.author} url={item.avatarUrl} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -708,6 +697,48 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
         marginBottom: 6,
       }}>
       {children}
+    </div>
+  )
+}
+
+function FeedAvatar({ name, url }: { name: string; url: string | null }) {
+  const [failed, setFailed] = useState(false)
+  const initial = name.charAt(0).toUpperCase() || "?"
+  const shared = {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    flexShrink: 0,
+  }
+
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        style={{
+          ...shared,
+          objectFit: "cover",
+          background: "#e2e8f0",
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      style={{
+        ...shared,
+        background: "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)",
+        display: "grid",
+        placeItems: "center",
+        color: "#475569",
+        fontWeight: 700,
+        fontSize: 13,
+      }}>
+      {initial}
     </div>
   )
 }

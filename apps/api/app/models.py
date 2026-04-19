@@ -6,11 +6,33 @@ Verdict = Literal["true", "false", "misleading", "unverifiable", "opinion"]
 ClaimType = Literal["fact", "opinion"]
 
 
+class TweetLink(BaseModel):
+    url: str
+    label: str | None = None
+
+
+class TweetContext(BaseModel):
+    author_name: str | None = None
+    author_handle: str | None = None
+    author_avatar_url: str | None = None
+    image_url: str | None = None
+    media_urls: list[str] | None = None
+    links: list[TweetLink] | None = None
+    reply_count: int | None = None
+    retweet_count: int | None = None
+    quote_count: int | None = None
+    like_count: int | None = None
+    view_count: int | None = None
+    metadata_captured_at: str | None = None
+    posted_at: str | None = None
+
+
 class CheckRequest(BaseModel):
     tweet_id: str
     text: str
     author_handle: str | None = None
     url: str | None = None
+    tweet_context: TweetContext | None = None
 
 
 class Source(BaseModel):
