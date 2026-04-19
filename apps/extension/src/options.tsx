@@ -17,7 +17,7 @@ function Options() {
 
   return (
     <div style={{ maxWidth: 480, margin: "32px auto", fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 18 }}>precitrus options</h1>
+      <h1 style={{ fontSize: 18 }}>SpyGlass options</h1>
       <label style={{ display: "block", fontSize: 13, marginTop: 16 }}>
         API base URL
         <input
