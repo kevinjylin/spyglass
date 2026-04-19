@@ -4,12 +4,12 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import type { TweetLink, TweetRow, Verdict } from "@/lib/types"
 
-const VERDICT_STYLES: Record<Verdict, { bg: string; text: string; ring: string; label: string }> = {
-  true:         { bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200", label: "True" },
-  false:        { bg: "bg-rose-50",    text: "text-rose-700",    ring: "ring-rose-200",    label: "False" },
-  misleading:   { bg: "bg-amber-50",   text: "text-amber-700",   ring: "ring-amber-200",   label: "Misleading" },
-  unverifiable: { bg: "bg-slate-100",  text: "text-slate-600",   ring: "ring-slate-200",   label: "Unverifiable" },
-  opinion:      { bg: "bg-sky-50",     text: "text-sky-700",     ring: "ring-sky-200",     label: "Opinion" },
+const VERDICT_STAMP: Record<Verdict, { label: string; color: string }> = {
+  true: { label: "TRUE", color: "#3a5c3a" },
+  false: { label: "FALSE", color: "#a31d1d" },
+  misleading: { label: "MISLEADING", color: "#b8892f" },
+  unverifiable: { label: "UNVERIFIABLE", color: "#6b5e4d" },
+  opinion: { label: "OPINION", color: "#1f3a5f" },
 }
 
 const PAGE_SIZE = 12
@@ -25,15 +25,17 @@ function formatRelative(iso: string, now: number): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return ""
   const diffSec = Math.round((now - then) / 1000)
-  if (diffSec < 5) return "just now"
-  if (diffSec < 60) return `${diffSec}s ago`
+  if (diffSec < 5) return "LIVE"
+  if (diffSec < 60) return `T-${diffSec}s`
   const diffMin = Math.round(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffMin < 60) return `T-${diffMin}m`
   const diffHr = Math.round(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffHr < 24) return `T-${diffHr}h`
   const diffDay = Math.round(diffHr / 24)
-  if (diffDay < 7) return `${diffDay}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+  if (diffDay < 7) return `T-${diffDay}d`
+  return new Date(iso)
+    .toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    .toUpperCase()
 }
 
 function formatCompact(n: number | null | undefined): string | null {
@@ -55,60 +57,8 @@ function useNow(intervalMs = 15000): number {
   return now
 }
 
-function RelativeTime({ iso, now }: { iso: string; now: number }) {
-  const absolute = new Date(iso).toLocaleString()
-  return (
-    <time dateTime={iso} title={absolute} className="tabular-nums">
-      {formatRelative(iso, now)}
-    </time>
-  )
-}
-
-/* Inline, tiny Twitter-style engagement icons. */
-const Icon = {
-  Reply: (p: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  ),
-  Retweet: (p: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
-      <polyline points="17 1 21 5 17 9" />
-      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <polyline points="7 23 3 19 7 15" />
-      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-    </svg>
-  ),
-  Quote: (p: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
-      <path d="M3 21c3 0 6-2 6-6V5H3v10h4c0 2-1 4-4 4v2z" />
-      <path d="M15 21c3 0 6-2 6-6V5h-6v10h4c0 2-1 4-4 4v2z" />
-    </svg>
-  ),
-  Like: (p: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  ),
-  Views: (p: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
-      <path d="M3 3v18h18" />
-      <path d="M7 15l4-4 3 3 5-6" />
-    </svg>
-  ),
-}
-
-function Stat({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5 text-slate-500" title={label}>
-      <span className="text-slate-400">{icon}</span>
-      <span className="tabular-nums">{value}</span>
-    </div>
-  )
-}
-
 function normalizeLinks(links: TweetRow["links"]): TweetLink[] {
-  return Array.isArray(links) ? links.filter((link) => Boolean(link?.url)) : []
+  return Array.isArray(links) ? links.filter((l) => Boolean(l?.url)) : []
 }
 
 function linkLabel(link: TweetLink): string {
@@ -118,6 +68,12 @@ function linkLabel(link: TweetLink): string {
   } catch {
     return link.url
   }
+}
+
+function caseCode(id: string): string {
+  const clean = id.replace(/\D/g, "")
+  const n = clean.slice(-4).padStart(4, "0")
+  return `EVIDENCE · ${n}`
 }
 
 export function RecentFeed() {
@@ -147,20 +103,30 @@ export function RecentFeed() {
 
     const channel = supabase
       .channel("website-tweets-feed")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tweets" }, (payload) => {
-        const row = payload.new as TweetRow
-        if (!isVerified(row)) return
-        setRows((prev) => sortRows([row, ...prev.filter((r) => r.id !== row.id)]).slice(0, PAGE_SIZE))
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tweets" }, (payload) => {
-        const row = payload.new as TweetRow
-        setRows((prev) => {
-          const exists = prev.some((r) => r.id === row.id)
-          if (!isVerified(row)) return exists ? prev.filter((r) => r.id !== row.id) : prev
-          const next = exists ? prev.map((r) => (r.id === row.id ? row : r)) : [row, ...prev]
-          return sortRows(next).slice(0, PAGE_SIZE)
-        })
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "tweets" },
+        (payload) => {
+          const row = payload.new as TweetRow
+          if (!isVerified(row)) return
+          setRows((prev) =>
+            sortRows([row, ...prev.filter((r) => r.id !== row.id)]).slice(0, PAGE_SIZE)
+          )
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tweets" },
+        (payload) => {
+          const row = payload.new as TweetRow
+          setRows((prev) => {
+            const exists = prev.some((r) => r.id === row.id)
+            if (!isVerified(row)) return exists ? prev.filter((r) => r.id !== row.id) : prev
+            const next = exists ? prev.map((r) => (r.id === row.id ? row : r)) : [row, ...prev]
+            return sortRows(next).slice(0, PAGE_SIZE)
+          })
+        }
+      )
       .subscribe()
 
     return () => {
@@ -169,124 +135,228 @@ export function RecentFeed() {
     }
   }, [])
 
-  if (error) return <p className="text-sm text-rose-600">{error}</p>
+  if (error)
+    return (
+      <p
+        className="font-mono-ds"
+        style={{
+          fontSize: 11,
+          letterSpacing: ".16em",
+          textTransform: "uppercase",
+          color: "var(--stamp)",
+        }}
+      >
+        ⚠ {error}
+      </p>
+    )
+
   if (!rows.length)
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-400">
-        Waiting for tweets to be checked…
+      <div
+        className="font-mono-ds"
+        style={{
+          border: "1.5px dashed var(--rule)",
+          padding: "40px 20px",
+          textAlign: "center",
+          fontSize: 11,
+          letterSpacing: ".22em",
+          textTransform: "uppercase",
+          color: "var(--ink-mute)",
+        }}
+      >
+        Waiting for intercepts…
       </div>
     )
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div
+      style={{
+        display: "grid",
+        gap: 18,
+        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+      }}
+    >
       {rows.map((r) => (
-        <FeedCard key={r.id} row={r} now={now} />
+        <EvidenceCard key={r.id} row={r} now={now} />
       ))}
     </div>
   )
 }
 
-function FeedCard({ row: r, now }: { row: TweetRow; now: number }) {
+function EvidenceCard({ row: r, now }: { row: TweetRow; now: number }) {
   const verdict = (r.overall_verdict ?? "unverifiable") as Verdict
-  const style = VERDICT_STYLES[verdict] ?? VERDICT_STYLES.unverifiable
+  const stamp = VERDICT_STAMP[verdict] ?? VERDICT_STAMP.unverifiable
   const handle = r.author_handle ? `@${r.author_handle.replace(/^@/, "")}` : null
-  const authorLabel = r.author_name || handle || "Unknown"
+  const authorLabel = r.author_name || handle || "UNKNOWN"
   const links = normalizeLinks(r.links).slice(0, 2)
+  const tweetText = r.neutral_text || r.text
 
-  const stats: { icon: React.ReactNode; value: string; label: string }[] = []
-  const reply = formatCompact(r.reply_count);   if (reply)   stats.push({ icon: <Icon.Reply className="h-3.5 w-3.5" />,   value: reply,   label: "Replies" })
-  const rt    = formatCompact(r.retweet_count); if (rt)      stats.push({ icon: <Icon.Retweet className="h-3.5 w-3.5" />, value: rt,      label: "Retweets" })
-  const quote = formatCompact(r.quote_count);   if (quote)   stats.push({ icon: <Icon.Quote className="h-3.5 w-3.5" />,   value: quote,   label: "Quotes" })
-  const like  = formatCompact(r.like_count);    if (like)    stats.push({ icon: <Icon.Like className="h-3.5 w-3.5" />,    value: like,    label: "Likes" })
-  const views = formatCompact(r.view_count);    if (views)   stats.push({ icon: <Icon.Views className="h-3.5 w-3.5" />,   value: views,   label: "Views" })
+  const stats: string[] = []
+  const reply = formatCompact(r.reply_count)
+  if (reply) stats.push(`↩ ${reply}`)
+  const rt = formatCompact(r.retweet_count)
+  if (rt) stats.push(`⇄ ${rt}`)
+  const like = formatCompact(r.like_count)
+  if (like) stats.push(`♥ ${like}`)
+  const views = formatCompact(r.view_count)
+  if (views) stats.push(`◎ ${views}`)
 
   return (
-    <article className="group flex aspect-square flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md">
-      {/* Centered verdict badge */}
-      <div className="flex items-center justify-center pt-5 pb-4">
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${style.bg} ${style.text} ${style.ring}`}
-        >
-          {style.label}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-5">
-        {(r.author_name || handle || r.author_avatar_url) && (
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <AuthorAvatar name={authorLabel} url={r.author_avatar_url} />
-            <div className="min-w-0">
-              <div className="truncate font-medium text-slate-700">{authorLabel}</div>
-              {handle && r.author_name && <div className="truncate">{handle}</div>}
-            </div>
-          </div>
+    <article className="evidence">
+      <div className="ev-hd">
+        <span>{caseCode(r.id)}</span>
+        {r.url ? (
+          <a href={r.url} target="_blank" rel="noopener noreferrer" aria-label="View tweet">
+            ↗
+          </a>
+        ) : (
+          <span>·</span>
         )}
+      </div>
+      <div
+        className="ev-verdict"
+        style={{ borderColor: stamp.color, color: stamp.color }}
+      >
+        {stamp.label}
+      </div>
+      <div className="ev-body">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 11,
+            color: "var(--ink-mute)",
+          }}
+        >
+          <EvidenceAvatar name={authorLabel} url={r.author_avatar_url} />
+          <div style={{ minWidth: 0 }}>
+            <div
+              className="font-type"
+              style={{
+                color: "var(--ink)",
+                fontSize: 14,
+                lineHeight: 1.1,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: 180,
+              }}
+            >
+              {authorLabel}
+            </div>
+            {handle && r.author_name && (
+              <div
+                className="font-mono-ds"
+                style={{
+                  fontSize: 10,
+                  letterSpacing: ".08em",
+                  color: "var(--ink-mute)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: 180,
+                }}
+              >
+                {handle}
+              </div>
+            )}
+          </div>
+        </div>
 
-        <p className="line-clamp-4 text-[15px] leading-snug text-slate-800">
-          {r.neutral_text || r.text}
+        <p
+          className="font-type"
+          style={{
+            fontSize: 13.5,
+            lineHeight: 1.5,
+            color: "var(--ink)",
+            margin: 0,
+            display: "-webkit-box",
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {tweetText}
         </p>
 
         {links.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {links.map((link) => (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {links.map((l) => (
               <a
-                key={link.url}
-                href={link.url}
+                key={l.url}
+                href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="max-w-full truncate rounded-md border border-slate-200 px-2 py-1 text-[11px] text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
+                className="font-mono-ds"
+                style={{
+                  fontSize: 9.5,
+                  padding: "2px 6px",
+                  border: "1px solid var(--ink)",
+                  color: "var(--ink)",
+                  textDecoration: "none",
+                  letterSpacing: ".1em",
+                  textTransform: "uppercase",
+                  background: "var(--paper-dark)",
+                  maxWidth: 180,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
               >
-                {linkLabel(link)}
+                ↗ {linkLabel(l)}
               </a>
             ))}
           </div>
         )}
 
         {r.image_url && (
-          <div className="relative mt-auto h-32 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+          <div
+            style={{
+              marginTop: "auto",
+              height: 80,
+              border: "1.5px solid var(--ink)",
+              overflow: "hidden",
+              background: "var(--paper-dark)",
+            }}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={r.image_url}
               alt=""
               loading="lazy"
-              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             />
           </div>
         )}
       </div>
 
-      {/* Footer: engagement + timestamp */}
-      <div className="mt-auto flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs">
-        <div className="flex items-center gap-4">
-          {stats.length > 0 ? (
-            stats.map((s, i) => <Stat key={i} {...s} />)
+      <div className="ev-footer">
+        <div style={{ display: "flex", gap: 10 }}>
+          {stats.length ? (
+            stats.map((s, i) => <span key={i}>{s}</span>)
           ) : (
-            <span className="text-slate-300">No engagement data</span>
+            <span style={{ color: "var(--ink-mute)" }}>NO SIGNALS</span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-slate-400">
-          <RelativeTime iso={eventTime(r)} now={now} />
-          {r.url && (
-            <a
-              href={r.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-slate-700"
-              aria-label="View tweet"
-            >
-              ↗
-            </a>
-          )}
-        </div>
+        <time dateTime={eventTime(r)}>{formatRelative(eventTime(r), now)}</time>
       </div>
     </article>
   )
 }
 
-function AuthorAvatar({ name, url }: { name: string; url: string | null }) {
+function EvidenceAvatar({ name, url }: { name: string; url: string | null }) {
   const [failed, setFailed] = useState(false)
   const initial = name.replace(/^@/, "").charAt(0).toUpperCase() || "?"
+  const shared: React.CSSProperties = {
+    width: 32,
+    height: 32,
+    border: "1.5px solid var(--ink)",
+    flexShrink: 0,
+    display: "grid",
+    placeItems: "center",
+  }
 
   if (url && !failed) {
     return (
@@ -297,13 +367,25 @@ function AuthorAvatar({ name, url }: { name: string; url: string | null }) {
         loading="lazy"
         referrerPolicy="no-referrer"
         onError={() => setFailed(true)}
-        className="h-8 w-8 flex-shrink-0 rounded-full bg-slate-100 object-cover"
+        style={{
+          ...shared,
+          objectFit: "cover",
+          background: "var(--paper-dark)",
+        }}
       />
     )
   }
 
   return (
-    <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500">
+    <div
+      className="font-type"
+      style={{
+        ...shared,
+        background: "var(--paper-dark)",
+        color: "var(--ink)",
+        fontSize: 14,
+      }}
+    >
       {initial}
     </div>
   )

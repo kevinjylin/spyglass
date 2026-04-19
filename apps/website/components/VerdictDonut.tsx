@@ -4,12 +4,12 @@ import { useEffect, useRef } from "react"
 import * as d3 from "d3"
 import type { VerdictBreakdown } from "@/lib/types"
 
-const COLORS: Record<string, string> = {
-  true: "#22c55e",
-  false: "#ef4444",
-  misleading: "#f59e0b",
-  unverifiable: "#94a3b8",
-  opinion: "#3b82f6",
+const PATTERN_IDS: Record<string, string> = {
+  true: "vw-h1",
+  false: "vw-h2",
+  misleading: "vw-h3",
+  unverifiable: "vw-h4",
+  opinion: "vw-h5",
 }
 
 const LABELS: Record<string, string> = {
@@ -19,6 +19,14 @@ const LABELS: Record<string, string> = {
   unverifiable: "Unverifiable",
   opinion: "Opinion",
 }
+
+const ORDER: (keyof VerdictBreakdown)[] = [
+  "true",
+  "false",
+  "misleading",
+  "unverifiable",
+  "opinion",
+]
 
 interface Props {
   data: VerdictBreakdown
@@ -33,12 +41,9 @@ export function VerdictDonut({ data, total }: Props) {
     const el = ref.current
     d3.select(el).selectAll("*").remove()
 
-    const entries = (Object.entries(data) as [string, number][]).filter(([, v]) => v > 0)
-    if (!entries.length) return
-
-    const size = 220
+    const size = 200
     const radius = size / 2
-    const inner = radius * 0.58
+    const inner = 52
 
     const svg = d3
       .select(el)
@@ -46,66 +51,187 @@ export function VerdictDonut({ data, total }: Props) {
       .attr("width", size)
       .attr("height", size)
 
-    const g = svg.append("g").attr("transform", `translate(${radius},${radius})`)
+    const defs = svg.append("defs")
 
-    const pie = d3.pie<[string, number]>().value(([, v]) => v).sort(null).padAngle(0.02)
-    const arc = d3
-      .arc<d3.PieArcDatum<[string, number]>>()
-      .innerRadius(inner)
-      .outerRadius(radius - 4)
-      .cornerRadius(3)
+    const patterns: { id: string; rotate: number; mode: "line" | "dot"; stroke: number }[] = [
+      { id: "vw-h1", rotate: 45, mode: "line", stroke: 2.4 },
+      { id: "vw-h2", rotate: 0, mode: "line", stroke: 1.2 },
+      { id: "vw-h3", rotate: 0, mode: "dot", stroke: 0.7 },
+      { id: "vw-h4", rotate: 90, mode: "line", stroke: 0.9 },
+      { id: "vw-h5", rotate: 135, mode: "line", stroke: 1.6 },
+    ]
 
-    g.selectAll("path")
-      .data(pie(entries))
-      .join("path")
-      .attr("d", arc)
-      .attr("fill", (d) => COLORS[d.data[0]] ?? "#94a3b8")
+    patterns.forEach((p) => {
+      const pat = defs
+        .append("pattern")
+        .attr("id", p.id)
+        .attr("patternUnits", "userSpaceOnUse")
+        .attr("width", 5)
+        .attr("height", 5)
+        .attr("patternTransform", `rotate(${p.rotate})`)
+      if (p.mode === "line") {
+        pat
+          .append("line")
+          .attr("x1", 0)
+          .attr("y1", 0)
+          .attr("x2", 0)
+          .attr("y2", 5)
+          .attr("stroke", "#1a1612")
+          .attr("stroke-width", p.stroke)
+      } else {
+        pat
+          .append("circle")
+          .attr("cx", 2.5)
+          .attr("cy", 2.5)
+          .attr("r", p.stroke)
+          .attr("fill", "#1a1612")
+      }
+    })
 
-    g.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", "-0.3em")
-      .attr("font-size", "26")
-      .attr("font-weight", "700")
-      .attr("fill", "#0f172a")
-      .text(total.toLocaleString())
+    // outer decorative rings
+    svg
+      .append("circle")
+      .attr("cx", radius)
+      .attr("cy", radius)
+      .attr("r", radius - 8)
+      .attr("fill", "none")
+      .attr("stroke", "#1a1612")
+      .attr("stroke-width", 1.5)
+    svg
+      .append("circle")
+      .attr("cx", radius)
+      .attr("cy", radius)
+      .attr("r", radius - 12)
+      .attr("fill", "none")
+      .attr("stroke", "#1a1612")
+      .attr("stroke-width", 0.5)
+      .attr("stroke-dasharray", "2 3")
 
-    g.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", "1.2em")
-      .attr("font-size", "10")
-      .attr("fill", "#94a3b8")
-      .attr("font-weight", "500")
-      .attr("letter-spacing", "0.05em")
-      .text("TWEETS")
+    const entries = ORDER.map((k) => [k, data[k] || 0] as [string, number]).filter(
+      ([, v]) => v > 0
+    )
+
+    if (entries.length > 0 && total > 0) {
+      const pie = d3
+        .pie<[string, number]>()
+        .value(([, v]) => v)
+        .sort(null)
+      const arc = d3
+        .arc<d3.PieArcDatum<[string, number]>>()
+        .innerRadius(inner)
+        .outerRadius(radius - 12)
+
+      const g = svg.append("g").attr("transform", `translate(${radius},${radius})`)
+      g.selectAll("path")
+        .data(pie(entries))
+        .join("path")
+        .attr("d", arc)
+        .attr("fill", (d) => `url(#${PATTERN_IDS[d.data[0]] ?? "vw-h2"})`)
+        .attr("stroke", "#1a1612")
+        .attr("stroke-width", 1.2)
+    } else {
+      svg
+        .append("circle")
+        .attr("cx", radius)
+        .attr("cy", radius)
+        .attr("r", radius - 12)
+        .attr("fill", "#e8decf")
+        .attr("stroke", "#1a1612")
+        .attr("stroke-width", 1.2)
+    }
+
+    // hollow center
+    svg
+      .append("circle")
+      .attr("cx", radius)
+      .attr("cy", radius)
+      .attr("r", inner)
+      .attr("fill", "#e8decf")
+      .attr("stroke", "#1a1612")
+      .attr("stroke-width", 1.2)
+
+    // N/E/S/W compass ticks
+    const ticks: [number, number, number, number][] = [
+      [radius, 4, radius, 14],
+      [size - 4, radius, size - 14, radius],
+      [radius, size - 4, radius, size - 14],
+      [4, radius, 14, radius],
+    ]
+    ticks.forEach(([x1, y1, x2, y2]) =>
+      svg
+        .append("line")
+        .attr("x1", x1)
+        .attr("y1", y1)
+        .attr("x2", x2)
+        .attr("y2", y2)
+        .attr("stroke", "#1a1612")
+        .attr("stroke-width", 1.5)
+    )
   }, [data, total])
 
-  const entries = Object.entries(data) as [string, number][]
-
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-8">
-      <svg ref={ref} className="shrink-0" />
-      <div className="w-full space-y-2.5">
-        {entries.map(([key, value]) => (
-          <div key={key} className="flex items-center gap-3 text-sm">
-            <span
-              className="h-3 w-3 rounded-full shrink-0"
-              style={{ background: COLORS[key] }}
-            />
-            <span className="text-slate-600 w-28">{LABELS[key]}</span>
-            <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: total > 0 ? `${(value / total) * 100}%` : "0%",
-                  background: COLORS[key],
-                }}
-              />
-            </div>
-            <span className="font-semibold text-slate-900 w-12 text-right tabular-nums">
-              {value.toLocaleString()}
-            </span>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "200px 1fr",
+        gap: 28,
+        alignItems: "center",
+      }}
+    >
+      <div style={{ position: "relative", width: 200, height: 200 }}>
+        <svg ref={ref} style={{ width: "100%", height: "100%" }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            className="font-type"
+            style={{
+              fontSize: 22,
+              color: "var(--ink)",
+              fontVariantNumeric: "tabular-nums",
+              lineHeight: 1,
+            }}
+          >
+            {total.toLocaleString()}
           </div>
-        ))}
+          <div
+            className="font-mono-ds"
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: ".25em",
+              textTransform: "uppercase",
+              color: "var(--ink-mute)",
+            }}
+          >
+            Intercepts
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {ORDER.map((k) => {
+          const value = data[k] || 0
+          const pct = total > 0 ? (value / total) * 100 : 0
+          return (
+            <div key={k} className="key-row">
+              <span className="key-dot" />
+              <span className="key-label">{LABELS[k]}</span>
+              <span className="key-track">
+                <span className="key-fill" style={{ width: `${pct}%` }} />
+              </span>
+              <span className="key-value">{value.toLocaleString()}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

@@ -12,101 +12,133 @@ export function ActivityChart({ data }: Props) {
   const ref = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
-    if (!ref.current || !data.length) return
+    if (!ref.current) return
     const el = ref.current
     d3.select(el).selectAll("*").remove()
 
-    const margin = { top: 10, right: 16, bottom: 28, left: 36 }
-    const W = 480
-    const H = 200
-    const iW = W - margin.left - margin.right
-    const iH = H - margin.top - margin.bottom
+    if (!data.length) return
 
+    const W = 500
+    const H = 200
     const svg = d3
       .select(el)
       .attr("viewBox", `0 0 ${W} ${H}`)
-      .attr("width", "100%")
-      .attr("height", H)
+      .attr("preserveAspectRatio", "none")
 
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`)
+    const defs = svg.append("defs")
+    const pat = defs
+      .append("pattern")
+      .attr("id", "areaHatch")
+      .attr("patternUnits", "userSpaceOnUse")
+      .attr("width", 5)
+      .attr("height", 5)
+      .attr("patternTransform", "rotate(45)")
+    pat
+      .append("line")
+      .attr("x1", 0)
+      .attr("y1", 0)
+      .attr("x2", 0)
+      .attr("y2", 5)
+      .attr("stroke", "#1a1612")
+      .attr("stroke-width", 0.7)
+      .attr("opacity", 0.25)
 
     const x = d3
       .scaleTime()
       .domain(d3.extent(data, (d) => new Date(d.date)) as [Date, Date])
-      .range([0, iW])
+      .range([0, W])
 
-    const y = d3
-      .scaleLinear()
-      .domain([0, Math.max(d3.max(data, (d) => d.count) ?? 1, 1)])
-      .range([iH, 0])
-      .nice()
+    const maxV = Math.max(d3.max(data, (d) => d.count) ?? 1, 1)
+    const y = d3.scaleLinear().domain([0, maxV]).range([H - 20, 14]).nice()
 
-    // Gridlines
-    g.append("g")
-      .call(d3.axisLeft(y).ticks(4).tickSize(-iW))
-      .call((ax) => ax.select(".domain").remove())
-      .call((ax) => ax.selectAll(".tick line").attr("stroke", "#f1f5f9").attr("stroke-dasharray", "3,3"))
-      .call((ax) => ax.selectAll(".tick text").attr("fill", "#94a3b8").attr("font-size", 10))
-
-    // X axis
-    g.append("g")
-      .attr("transform", `translate(0,${iH})`)
-      .call(
-        d3
-          .axisBottom(x)
-          .ticks(6)
-          .tickFormat((d) => d3.timeFormat("%b %d")(d as Date))
-      )
-      .call((ax) => ax.select(".domain").remove())
-      .call((ax) => ax.selectAll(".tick line").remove())
-      .call((ax) => ax.selectAll(".tick text").attr("fill", "#94a3b8").attr("font-size", 10))
-
-    // Area fill
-    const area = d3
-      .area<DailyCount>()
-      .x((d) => x(new Date(d.date)))
-      .y0(iH)
-      .y1((d) => y(d.count))
-      .curve(d3.curveCatmullRom.alpha(0.5))
-
-    g.append("path")
-      .datum(data)
-      .attr("fill", "rgba(99,102,241,0.08)")
-      .attr("d", area)
-
-    // Line
     const line = d3
       .line<DailyCount>()
       .x((d) => x(new Date(d.date)))
       .y((d) => y(d.count))
-      .curve(d3.curveCatmullRom.alpha(0.5))
+      .curve(d3.curveMonotoneX)
 
-    g.append("path")
+    const area = d3
+      .area<DailyCount>()
+      .x((d) => x(new Date(d.date)))
+      .y0(H)
+      .y1((d) => y(d.count))
+      .curve(d3.curveMonotoneX)
+
+    svg.append("path").datum(data).attr("fill", "url(#areaHatch)").attr("d", area)
+    svg
+      .append("path")
       .datum(data)
       .attr("fill", "none")
-      .attr("stroke", "#6366f1")
-      .attr("stroke-width", 2)
+      .attr("stroke", "#1a1612")
+      .attr("stroke-width", 1.6)
       .attr("d", line)
 
-    // Dots for non-zero days
-    g.selectAll("circle")
-      .data(data.filter((d) => d.count > 0))
+    // data ticks on days with non-zero counts (sample up to 4 evenly)
+    const active = data.filter((d) => d.count > 0)
+    const sampled =
+      active.length > 4
+        ? [0, 1, 2, 3].map((i) => active[Math.floor(((active.length - 1) * i) / 3)])
+        : active
+    svg
+      .append("g")
+      .attr("fill", "#1a1612")
+      .selectAll("circle")
+      .data(sampled)
       .join("circle")
       .attr("cx", (d) => x(new Date(d.date)))
       .attr("cy", (d) => y(d.count))
-      .attr("r", 3)
-      .attr("fill", "#6366f1")
+      .attr("r", 2.5)
   }, [data])
 
   const total = data.reduce((s, d) => s + d.count, 0)
 
+  if (total === 0) {
+    return (
+      <div className="chart-area-ds" style={{ display: "grid", placeItems: "center" }}>
+        <p
+          className="font-mono-ds"
+          style={{
+            fontSize: 11,
+            letterSpacing: ".2em",
+            textTransform: "uppercase",
+            color: "var(--ink-mute)",
+            margin: 0,
+          }}
+        >
+          No transmissions in last 30 days
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div>
-      {total === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-8">No activity in the last 30 days.</p>
-      ) : (
-        <svg ref={ref} className="w-full" />
-      )}
+      <div className="chart-area-ds">
+        <svg ref={ref} />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 8,
+        }}
+      >
+        {["W-04", "W-03", "W-02", "W-01", "NOW"].map((l) => (
+          <span
+            key={l}
+            className="font-mono-ds"
+            style={{
+              fontSize: 9.5,
+              fontWeight: 600,
+              letterSpacing: ".16em",
+              textTransform: "uppercase",
+              color: "var(--ink-mute)",
+            }}
+          >
+            {l}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
