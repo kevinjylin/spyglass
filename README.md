@@ -1,9 +1,9 @@
 # spyglass
 
 Inline fact-check badges on X / Twitter, plus a public live-feed dashboard.
-One `GEMINI_API_KEY` powers everything: **Gemma 4** for neutralization and
-claim extraction, **Gemini 2.5 Flash + Google Search grounding** for claim
-verification.
+The API talks to **Vertex AI** using your Google identity or a service account
+(**Application Default Credentials**). Models: **Gemma 4** for neutralization
+and claim extraction, **Gemini 2.5 Flash + grounding** for verification.
 
 ```
 apps/
@@ -40,12 +40,39 @@ and adds `tweets` to the `supabase_realtime` publication.
 
 ## 2. API
 
+Use **Python 3.11–3.13** (not 3.14 yet — wheels for `pydantic-core` / native deps
+may not be available, and source builds can fail). If `python3 --version` shows
+3.14, install 3.12 via Homebrew (`brew install python@3.12`) or pyenv and point
+your venv at that interpreter.
+
 ```
 cd apps/api
-cp .env.example .env       # fill in GEMINI_API_KEY + SUPABASE_*
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+cp .env.example .env       # fill in GCP_PROJECT, GCP_REGION, SUPABASE_*
+python3.12 -m venv .venv     # or: python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
+
+**Google Cloud auth (required for local dev).** The API uses
+`google.auth.default()` and must find [Application Default
+Credentials](https://cloud.google.com/docs/authentication/application-default-credentials).
+If you see *“Your default credentials were not found”*, do this on your machine:
+
+1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) if needed.
+   On macOS with Homebrew (`brew install --cask google-cloud-sdk`), **`gcloud` is not on
+   your `PATH` until you source the SDK** — add this to `~/.zshrc` (then open a new terminal):
+   ```bash
+   source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+   source "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
+   ```
+2. `gcloud auth application-default login` — stores user credentials for local use.
+3. `gcloud config set project YOUR_GCP_PROJECT_ID` (same value as `GCP_PROJECT` in `.env`).
+4. In Cloud Console, enable **Vertex AI API** for that project and grant your user (or
+   service account) a role that can call Vertex AI in `GCP_REGION` (e.g. **Vertex AI User**).
+
+Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service account
+JSON key with Vertex permissions (typical for servers and Docker).
 
 Endpoints:
 - `POST /tweets/check` — body `{ tweet_id, text, author_handle?, url? }`
