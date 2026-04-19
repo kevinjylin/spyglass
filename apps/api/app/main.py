@@ -28,6 +28,6 @@ app.include_router(stats.router)
 def healthz() -> dict[str, object]:
     return {
         "ok": True,
-        "gemini": bool(settings.gemini_api_key),
+        "gemini": bool(settings.gcp_project),
         "supabase": bool(settings.supabase_url and settings.supabase_service_role_key),
     }

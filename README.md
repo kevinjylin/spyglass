@@ -1,9 +1,9 @@
 # spyglass
 
 Inline fact-check badges on X / Twitter, plus a public live-feed dashboard.
-One `GEMINI_API_KEY` powers everything: **Gemma 4** for neutralization and
-claim extraction, **Gemini 2.5 Flash + Google Search grounding** for claim
-verification.
+The API talks to **Vertex AI** using your Google identity or a service account
+(**Application Default Credentials**). Models: **Gemma 4** for neutralization
+and claim extraction, **Gemini 2.5 Flash + grounding** for verification.
 
 ```
 apps/
@@ -47,12 +47,26 @@ your venv at that interpreter.
 
 ```
 cd apps/api
-cp .env.example .env       # fill in GEMINI_API_KEY + SUPABASE_*
+cp .env.example .env       # fill in GCP_PROJECT, GCP_REGION, SUPABASE_*
 python3.12 -m venv .venv     # or: python3.13 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
+
+**Google Cloud auth (required for local dev).** The API uses
+`google.auth.default()` and must find [Application Default
+Credentials](https://cloud.google.com/docs/authentication/application-default-credentials).
+If you see *“Your default credentials were not found”*, do this on your machine:
+
+1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) if needed.
+2. `gcloud auth application-default login` — stores user credentials for local use.
+3. `gcloud config set project YOUR_GCP_PROJECT_ID` (same value as `GCP_PROJECT` in `.env`).
+4. In Cloud Console, enable **Vertex AI API** for that project and grant your user (or
+   service account) a role that can call Vertex AI in `GCP_REGION` (e.g. **Vertex AI User**).
+
+Alternatively, set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service account
+JSON key with Vertex permissions (typical for servers and Docker).
 
 Endpoints:
 - `POST /tweets/check` — body `{ tweet_id, text, author_handle?, url? }`

@@ -4,23 +4,45 @@ import logging
 import random
 from typing import Any
 
+import google.auth
+import google.auth.transport.requests
 import httpx
 
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 MAX_RETRIES = 4
 BASE_BACKOFF_S = 0.75
+
+_credentials = None
+_credentials_lock = asyncio.Lock()
 
 
 class GeminiError(RuntimeError):
     pass
 
 
-def _endpoint(model: str) -> str:
-    return f"{BASE_URL}/models/{model}:generateContent"
+async def _get_bearer_token() -> str:
+    global _credentials
+    async with _credentials_lock:
+        if _credentials is None:
+            _credentials, _ = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+        if not _credentials.valid:
+            loop = asyncio.get_running_loop()
+            request = google.auth.transport.requests.Request()
+            await loop.run_in_executor(None, _credentials.refresh, request)
+    return _credentials.token
+
+
+def _endpoint(project: str, region: str, model: str) -> str:
+    return (
+        f"https://{region}-aiplatform.googleapis.com/v1"
+        f"/projects/{project}/locations/{region}"
+        f"/publishers/google/models/{model}:generateContent"
+    )
 
 
 def _build_payload(
@@ -39,18 +61,19 @@ def _build_payload(
     if response_mime_type:
         payload["generationConfig"]["responseMimeType"] = response_mime_type
     if grounded:
-        payload["tools"] = [{"google_search": {}}]
+        payload["tools"] = [{"googleSearchRetrieval": {}}]
     return payload
 
 
 async def _post(model: str, payload: dict[str, Any]) -> dict[str, Any]:
     settings = get_settings()
-    if not settings.gemini_api_key:
-        raise GeminiError("GEMINI_API_KEY is not set")
+    if not settings.gcp_project:
+        raise GeminiError("GCP_PROJECT is not set")
 
-    url = _endpoint(model)
+    url = _endpoint(settings.gcp_project, settings.gcp_region, model)
+    token = await _get_bearer_token()
     headers = {
-        "x-goog-api-key": settings.gemini_api_key,
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
@@ -61,17 +84,23 @@ async def _post(model: str, payload: dict[str, Any]) -> dict[str, Any]:
                 resp = await client.post(url, headers=headers, json=payload)
                 if resp.status_code == 429 or resp.status_code >= 500:
                     raise GeminiError(f"retryable status {resp.status_code}: {resp.text[:300]}")
+                if resp.status_code == 401:
+                    global _credentials
+                    async with _credentials_lock:
+                        if _credentials is not None:
+                            _credentials.expiry = None
+                    raise GeminiError(f"auth error 401: {resp.text[:300]}")
                 if resp.status_code >= 400:
-                    raise GeminiError(f"gemini {resp.status_code}: {resp.text[:300]}")
+                    raise GeminiError(f"vertex {resp.status_code}: {resp.text[:300]}")
                 return resp.json()
             except (httpx.HTTPError, GeminiError) as exc:
                 last_err = exc
                 if attempt == MAX_RETRIES - 1:
                     break
                 delay = BASE_BACKOFF_S * (2**attempt) + random.uniform(0, 0.25)
-                logger.warning("gemini retry %d/%d after %.2fs: %s", attempt + 1, MAX_RETRIES, delay, exc)
+                logger.warning("vertex retry %d/%d after %.2fs: %s", attempt + 1, MAX_RETRIES, delay, exc)
                 await asyncio.sleep(delay)
-    raise GeminiError(f"gemini failed after {MAX_RETRIES} attempts: {last_err}")
+    raise GeminiError(f"vertex failed after {MAX_RETRIES} attempts: {last_err}")
 
 
 def _extract_text(data: dict[str, Any]) -> str:
