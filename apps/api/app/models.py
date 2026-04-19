@@ -25,6 +25,7 @@ class ClaimResult(BaseModel):
     verdict: Verdict
     explanation: str = ""
     sources: list[Source] = Field(default_factory=list)
+    source_span: str | None = None
 
 
 class CheckResponse(BaseModel):

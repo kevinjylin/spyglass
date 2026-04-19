@@ -19,8 +19,11 @@ create table if not exists claims (
   claim_type text,
   verdict text,
   explanation text,
+  source_span text,
   created_at timestamptz default now()
 );
+
+alter table claims add column if not exists source_span text;
 
 create table if not exists verifications (
   id bigserial primary key,
@@ -50,4 +53,13 @@ create policy "public read claims" on claims for select using (true);
 create policy "public read verif" on verifications for select using (true);
 
 -- Realtime
-alter publication supabase_realtime add table tweets;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'tweets'
+  ) then
+    alter publication supabase_realtime add table tweets;
+  end if;
+end $$;

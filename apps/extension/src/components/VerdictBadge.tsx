@@ -1,21 +1,6 @@
 import { useState } from "react"
-import type { CheckResponse, Verdict } from "~lib/types"
-
-const COLORS: Record<Verdict, string> = {
-  true: "#15803d",
-  false: "#b91c1c",
-  misleading: "#b45309",
-  unverifiable: "#6b7280",
-  opinion: "#1d4ed8",
-}
-
-const LABELS: Record<Verdict, string> = {
-  true: "Likely true",
-  false: "Likely false",
-  misleading: "Misleading",
-  unverifiable: "Unverifiable",
-  opinion: "Opinion",
-}
+import type { CheckResponse } from "~lib/types"
+import { COLORS, LABELS } from "~lib/verdict"
 
 interface Props {
   state: "loading" | "ready" | "error"

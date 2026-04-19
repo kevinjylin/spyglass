@@ -75,6 +75,7 @@ def get_cached_tweet(tweet_id: str) -> CheckResponse | None:
                 verdict=(c.get("verdict") or "unverifiable"),
                 explanation=c.get("explanation") or "",
                 sources=sources_by_claim.get(c["id"], []),
+                source_span=c.get("source_span"),
             )
             for c in claim_rows
         ]
@@ -126,6 +127,7 @@ def persist_check(
                         "claim_type": claim.claim_type,
                         "verdict": claim.verdict,
                         "explanation": claim.explanation,
+                        "source_span": claim.source_span,
                     }
                 )
                 .execute()

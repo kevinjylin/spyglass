@@ -1,8 +1,13 @@
 import cssText from "data-text:./twitter.css"
 import type { PlasmoCSConfig, PlasmoCSUIProps, PlasmoGetInlineAnchorList } from "plasmo"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { VerdictBadge } from "~components/VerdictBadge"
+import {
+  installHighlights,
+  type HighlightHandle,
+  type HighlightSpec,
+} from "~contents/highlight"
 import {
   TWEET_ARTICLE,
   TWEET_TEXT,
@@ -11,6 +16,7 @@ import {
   extractTweetText,
   extractTweetUrl,
 } from "~contents/selectors"
+import { hideTooltip, showTooltip } from "~contents/tooltip"
 import type { CheckResponse } from "~lib/types"
 
 export const config: PlasmoCSConfig = {
@@ -66,6 +72,38 @@ const Badge = ({ anchor }: PlasmoCSUIProps) => {
       setState("ready")
     })
   }, [anchor])
+
+  const handleRef = useRef<HighlightHandle | null>(null)
+
+  useEffect(() => {
+    if (state !== "ready" || !data) return
+    const el = anchor?.element as HTMLElement | undefined
+    if (!el) return
+
+    const specs: HighlightSpec[] = data.claims
+      .map((c, i) =>
+        c.source_span
+          ? {
+              claimIndex: i,
+              sourceSpan: c.source_span,
+              verdict: c.verdict,
+              explanation: c.explanation,
+              claimText: c.text,
+            }
+          : null,
+      )
+      .filter((x): x is HighlightSpec => x !== null)
+
+    if (specs.length === 0) return
+
+    handleRef.current = installHighlights(el, specs, showTooltip)
+
+    return () => {
+      handleRef.current?.destroy()
+      handleRef.current = null
+      hideTooltip()
+    }
+  }, [state, data, anchor])
 
   return <VerdictBadge state={state} data={data} error={error} />
 }

@@ -25,14 +25,16 @@ def _overall_verdict(claims: list[ClaimResult]) -> Verdict:
 
 async def run_pipeline(tweet_id: str, text: str) -> CheckResponse:
     neutral = await neutralize(text)
-    raw = await extract_claims(neutral)
+    raw = await extract_claims(neutral, text)
 
     settings = get_settings()
     sem = asyncio.Semaphore(max(1, settings.verify_concurrency))
 
-    async def one(item: dict[str, str]) -> ClaimResult:
-        ctype = (item.get("type") or "").strip().lower()
-        ctext = (item.get("text") or "").strip()
+    async def one(item: dict[str, str | None]) -> ClaimResult:
+        ctype = ((item.get("type") or "")).strip().lower() if isinstance(item.get("type"), str) else ""
+        ctext = ((item.get("text") or "")).strip() if isinstance(item.get("text"), str) else ""
+        raw_span = item.get("source_span")
+        source_span = raw_span if isinstance(raw_span, str) and raw_span else None
         if ctype == "opinion":
             return ClaimResult(
                 text=ctext,
@@ -40,9 +42,11 @@ async def run_pipeline(tweet_id: str, text: str) -> CheckResponse:
                 verdict="opinion",
                 explanation="Subjective or predictive; not treated as an empirically verifiable fact.",
                 sources=[],
+                source_span=source_span,
             )
         async with sem:
-            return await verify_claim(ctext)
+            result = await verify_claim(ctext)
+        return result.model_copy(update={"source_span": source_span})
 
     claims: list[ClaimResult] = list(await asyncio.gather(*[one(x) for x in raw])) if raw else []
 

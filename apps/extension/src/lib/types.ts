@@ -17,6 +17,7 @@ export interface ClaimResult {
   verdict: Verdict
   explanation: string
   sources: Source[]
+  source_span?: string | null
 }
 
 export interface CheckResponse {
