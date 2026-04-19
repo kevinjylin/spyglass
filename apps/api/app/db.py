@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any
@@ -17,6 +18,16 @@ from app.models import (
 )
 
 logger = logging.getLogger(__name__)
+REQUIRED_TWEET_COLUMNS = {
+    "id",
+    "text",
+    "neutral_text",
+    "author_handle_hash",
+    "url",
+    "overall_verdict",
+    "checked_at",
+}
+MISSING_SCHEMA_COLUMN_RE = re.compile(r"Could not find the '([^']+)' column")
 
 
 @lru_cache
@@ -141,6 +152,54 @@ def _tweet_context_payload(
     return payload
 
 
+def _missing_schema_column(exc: Exception) -> str | None:
+    message = str(exc)
+    if "PGRST204" not in message and "schema cache" not in message:
+        return None
+    match = MISSING_SCHEMA_COLUMN_RE.search(message)
+    return match.group(1) if match else None
+
+
+def _upsert_tweet_with_schema_fallback(client: Client, payload: dict[str, Any]) -> None:
+    unsupported: set[str] = set()
+    while True:
+        attempt = {key: value for key, value in payload.items() if key not in unsupported}
+        try:
+            client.table("tweets").upsert(attempt).execute()
+            return
+        except Exception as exc:
+            column = _missing_schema_column(exc)
+            if not column or column in REQUIRED_TWEET_COLUMNS or column in unsupported:
+                raise
+            unsupported.add(column)
+            logger.warning(
+                "tweets.%s is missing from Supabase schema cache; retrying tweet upsert without it",
+                column,
+            )
+
+
+def _update_tweet_with_schema_fallback(
+    client: Client, tweet_id: str, payload: dict[str, Any]
+) -> None:
+    unsupported: set[str] = set()
+    while True:
+        attempt = {key: value for key, value in payload.items() if key not in unsupported}
+        if not attempt:
+            return
+        try:
+            client.table("tweets").update(attempt).eq("id", tweet_id).execute()
+            return
+        except Exception as exc:
+            column = _missing_schema_column(exc)
+            if not column or column in unsupported:
+                raise
+            unsupported.add(column)
+            logger.warning(
+                "tweets.%s is missing from Supabase schema cache; retrying tweet update without it",
+                column,
+            )
+
+
 def get_cached_tweet(tweet_id: str) -> CheckResponse | None:
     client = _client()
     if not client:
@@ -230,7 +289,7 @@ def persist_check(
         tweet_payload.update(
             _tweet_context_payload(tweet_context, author_handle=author_handle, url=url)
         )
-        client.table("tweets").upsert(tweet_payload).execute()
+        _upsert_tweet_with_schema_fallback(client, tweet_payload)
 
         # Replace any prior claims for this tweet
         client.table("claims").delete().eq("tweet_id", tweet_id).execute()
@@ -286,7 +345,7 @@ def update_tweet_context(
     if not payload:
         return
     try:
-        client.table("tweets").update(payload).eq("id", tweet_id).execute()
+        _update_tweet_with_schema_fallback(client, tweet_id, payload)
     except Exception as exc:  # noqa: BLE001
         logger.warning("update_tweet_context failed: %s", exc)
 
