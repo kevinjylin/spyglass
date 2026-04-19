@@ -37,7 +37,6 @@ export function EngagementScatter({ data, trimOutliers = 0 }: Props) {
           .sort((a, b) => Math.max(b.retweets, b.likes) - Math.max(a.retweets, a.likes))
           .slice(trimOutliers)
       : data
-  const droppedCount = data.length - trimmed.length
 
   useEffect(() => {
     if (!ref.current) return
@@ -299,26 +298,8 @@ export function EngagementScatter({ data, trimOutliers = 0 }: Props) {
   }
 
   return (
-    <div>
-      <div className="chart-area-ds" style={{ padding: 12 }}>
-        <svg ref={ref} style={{ display: "block", width: "100%" }} />
-      </div>
-      {droppedCount > 0 && (
-        <div
-          className="font-mono-ds"
-          style={{
-            marginTop: 6,
-            fontSize: 9,
-            fontWeight: 600,
-            letterSpacing: ".18em",
-            textTransform: "uppercase",
-            color: "var(--ink-mute)",
-            textAlign: "right",
-          }}
-        >
-          Hiding {droppedCount} outlier{droppedCount === 1 ? "" : "s"} to keep the cluster readable
-        </div>
-      )}
+    <div className="chart-area-ds" style={{ padding: 12 }}>
+      <svg ref={ref} style={{ display: "block", width: "100%" }} />
     </div>
   )
 }

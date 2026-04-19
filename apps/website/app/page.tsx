@@ -2,7 +2,7 @@ import { fetchSiteStats } from "@/lib/data"
 import { StatCard } from "@/components/StatCard"
 import { VerdictDonut } from "@/components/VerdictDonut"
 import { EngagementScatter } from "@/components/EngagementScatter"
-import { ClaimsBreakdown } from "@/components/ClaimsBreakdown"
+import { VerdictSplit } from "@/components/VerdictSplit"
 import { RecentFeed } from "@/components/RecentFeed"
 import { DossierTabs } from "@/components/DossierTabs"
 
@@ -75,16 +75,16 @@ export default async function HomePage() {
         <div className="folio">
           <div className="folio-head">
             <div>
-              <div className="folio-title">Claims: fact vs opinion</div>
+              <div className="folio-title">Tweets: false vs fact</div>
               <div className="folio-sub">
-                Facts are sent through verification; opinions are logged but not graded.
+                Share of tweets graded factually true versus false across everything we&apos;ve
+                checked.
               </div>
             </div>
           </div>
-          <ClaimsBreakdown
-            factClaims={stats.fact_claims}
-            opinionClaims={stats.opinion_claims}
-            total={stats.total_claims}
+          <VerdictSplit
+            trueTweets={stats.by_verdict.true}
+            falseTweets={stats.by_verdict.false}
           />
         </div>
       </section>
