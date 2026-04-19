@@ -198,7 +198,7 @@ export default async function HomePage() {
               lineHeight: 1.05,
             }}
           >
-            Homepage — Public Intake
+            Dashboard — Public Intake
           </h1>
           <div
             className="font-mono-ds"
@@ -237,34 +237,10 @@ export default async function HomePage() {
           <span>Status ·</span>
           <b style={{ color: "var(--ink)" }}>Active</b>
         </div>
-
-        <div className="stamp" style={{ top: -14, right: 180, transform: "rotate(7deg)" }}>
-          TOP SECRET
-        </div>
-        <div
-          className="stamp sm"
-          style={{ bottom: -10, left: 28, transform: "rotate(-3deg)" }}
-        >
-          EYES ONLY
-        </div>
       </div>
 
       {/* Canvas */}
       <div className="canvas-shell" style={{ marginTop: 18 }}>
-        <div className="corner tl"></div>
-        <div className="corner tr"></div>
-        <div className="corner bl"></div>
-        <div className="corner br"></div>
-        <div className="coord top">↑ N · UPPER TRANSMISSION BAND</div>
-        <div className="coord bot">↓ S · LOWER TRANSMISSION BAND</div>
-
-        <div className="watermark" style={{ top: "30%", left: "-10%" }}>
-          EYES ONLY
-        </div>
-        <div className="watermark" style={{ top: "70%", left: "10%" }}>
-          CLASSIFIED
-        </div>
-
         {/* Site header */}
         <div className="site-header-ds">
           <a
@@ -301,7 +277,7 @@ export default async function HomePage() {
             target="_blank"
             rel="noreferrer"
           >
-            Deploy to Chrome →
+            Download Extension →
           </a>
         </div>
 
@@ -338,14 +314,14 @@ export default async function HomePage() {
                   color: "var(--ink)",
                 }}
               >
-                Real-time fact-checking for X
+                Fact-check X in real time.
               </h2>
               <p
                 style={{
-                  maxWidth: 560,
+                  maxWidth: 600,
                   margin: 0,
-                  fontSize: 15.5,
-                  lineHeight: 1.6,
+                  fontSize: 17,
+                  lineHeight: 1.7,
                   color: "var(--ink-2)",
                 }}
               >
@@ -365,59 +341,10 @@ export default async function HomePage() {
         {/* Footer */}
         <div className="site-footer-ds">
           <span>SpyGlass · Field Surveillance Unit · ⟐ Classified</span>
-          <svg width="160" height="22" viewBox="0 0 160 22">
-            <g fill="#1a1612">
-              <rect x="0" width="2" height="22" />
-              <rect x="4" width="1" height="22" />
-              <rect x="8" width="3" height="22" />
-              <rect x="13" width="1" height="22" />
-              <rect x="17" width="2" height="22" />
-              <rect x="22" width="1" height="22" />
-              <rect x="26" width="4" height="22" />
-              <rect x="32" width="1" height="22" />
-              <rect x="36" width="2" height="22" />
-              <rect x="40" width="3" height="22" />
-              <rect x="46" width="1" height="22" />
-              <rect x="50" width="2" height="22" />
-              <rect x="54" width="1" height="22" />
-              <rect x="58" width="3" height="22" />
-              <rect x="64" width="2" height="22" />
-              <rect x="68" width="1" height="22" />
-              <rect x="72" width="4" height="22" />
-              <rect x="78" width="1" height="22" />
-              <rect x="82" width="2" height="22" />
-              <rect x="87" width="3" height="22" />
-              <rect x="92" width="1" height="22" />
-              <rect x="96" width="2" height="22" />
-              <rect x="100" width="1" height="22" />
-              <rect x="104" width="3" height="22" />
-              <rect x="109" width="2" height="22" />
-              <rect x="114" width="1" height="22" />
-              <rect x="118" width="4" height="22" />
-              <rect x="124" width="1" height="22" />
-              <rect x="128" width="2" height="22" />
-              <rect x="132" width="1" height="22" />
-              <rect x="136" width="3" height="22" />
-              <rect x="141" width="2" height="22" />
-              <rect x="145" width="1" height="22" />
-              <rect x="149" width="3" height="22" />
-              <rect x="155" width="2" height="22" />
-            </g>
-          </svg>
-          <span>SG-04-WEB-HP · {footerDate()}</span>
-        </div>
-      </div>
-
-      {/* End of file */}
-      <div className="dossier-bar" style={{ marginTop: 32 }}>
-        <div className="group">
-          <span>
-            <span className="dot"></span>END OF FILE
+          <span className="font-mono-ds" aria-hidden>
+            · · ·
           </span>
-          <span>Next · /check manual intake</span>
-        </div>
-        <div className="group">
-          <span>Burn after reading</span>
+          <span>SG-04-WEB-HP · {footerDate()}</span>
         </div>
       </div>
     </div>
