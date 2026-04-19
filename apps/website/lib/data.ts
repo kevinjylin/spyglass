@@ -41,8 +41,15 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     { data: scatterRows },
     ...verdictResults
   ] = await Promise.all([
-    sb.from("tweets").select("*", { count: "exact", head: true }),
-    sb.from("tweets").select("*", { count: "exact", head: true }).gte("created_at", oneDayAgo.toISOString()),
+    sb
+      .from("tweets")
+      .select("*", { count: "exact", head: true })
+      .not("overall_verdict", "is", null),
+    sb
+      .from("tweets")
+      .select("*", { count: "exact", head: true })
+      .not("overall_verdict", "is", null)
+      .gte("checked_at", oneDayAgo.toISOString()),
     sb.from("claims").select("*", { count: "exact", head: true }),
     sb.from("claims").select("*", { count: "exact", head: true }).eq("claim_type", "fact"),
     sb.from("claims").select("*", { count: "exact", head: true }).eq("claim_type", "opinion"),
