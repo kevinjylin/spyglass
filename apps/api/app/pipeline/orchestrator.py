@@ -1,10 +1,37 @@
 import asyncio
+import re
 
 from app.config import get_settings
 from app.models import CheckResponse, ClaimResult, Verdict
 from app.pipeline.extract_claims import extract_claims
 from app.pipeline.neutralize import neutralize
 from app.pipeline.verify import verify_claim
+
+SHORT_TWEET_MAX_LEN = 100
+
+# Signals that a tweet carries tone the neutralize stage should strip.
+_EMOJI_RE = re.compile(
+    "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F000-\U0001F9FF]"
+)
+_ALLCAPS_WORD_RE = re.compile(r"\b[A-Z]{3,}\b")
+_MULTI_PUNCT_RE = re.compile(r"[!?]{2,}")
+_SARCASM_TOKENS = {"lol", "lmao", "lmfao", "smh", "rofl", "yikes"}
+_TOKEN_RE = re.compile(r"[a-z]+")
+
+
+def _needs_neutralize(text: str) -> bool:
+    if len(text) >= SHORT_TWEET_MAX_LEN:
+        return True
+    if _EMOJI_RE.search(text):
+        return True
+    if _ALLCAPS_WORD_RE.search(text):
+        return True
+    if _MULTI_PUNCT_RE.search(text):
+        return True
+    tokens = set(_TOKEN_RE.findall(text.lower()))
+    if tokens & _SARCASM_TOKENS:
+        return True
+    return False
 
 
 def _overall_verdict(claims: list[ClaimResult]) -> Verdict:
@@ -24,7 +51,7 @@ def _overall_verdict(claims: list[ClaimResult]) -> Verdict:
 
 
 async def run_pipeline(tweet_id: str, text: str) -> CheckResponse:
-    neutral = await neutralize(text)
+    neutral = text if not _needs_neutralize(text) else await neutralize(text)
     raw = await extract_claims(neutral, text)
 
     settings = get_settings()

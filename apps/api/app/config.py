@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     gemma_extract_model: str = "gemini-2.5-flash"
     gemini_verify_model: str = "gemini-2.5-flash"
 
-    verify_concurrency: int = 3
+    verify_concurrency: int = 8
     request_timeout_s: float = 30.0
 
 
