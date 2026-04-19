@@ -16,6 +16,7 @@ const AMBER = "#a16207"
 const STAMP_RED = "#991b1b"
 const MONO =
   "'American Typewriter', 'Courier Prime', 'Courier New', Courier, 'Lucida Console', monospace"
+const UI_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
 const VERDICT_COLORS: Record<
   Verdict,
@@ -156,7 +157,7 @@ function Popup() {
         <div
           style={{
             width: 360,
-            fontFamily: MONO,
+            fontFamily: UI_FONT,
             background: `radial-gradient(1200px 200px at 50% -60px, ${AMBER}22, transparent 60%), ${PANEL}`,
             color: TEXT,
             borderRadius: 14,
@@ -290,9 +291,9 @@ function Popup() {
               <div
                 style={{
                   fontFamily: MONO,
-                  fontSize: 10,
+                  fontSize: 11,
                   color: TEXT_FAINT,
-                  letterSpacing: "0.8px",
+                  letterSpacing: "0.4px",
                 }}>
                 {feed.length} DOSSIER{feed.length === 1 ? "" : "S"}
               </div>
@@ -349,9 +350,9 @@ function FeedCard({ item }: { item: FeedItem }) {
           alignItems: "center",
           justifyContent: "space-between",
           fontFamily: MONO,
-          fontSize: 9,
+          fontSize: 10.5,
           color: TEXT_FAINT,
-          letterSpacing: "1px",
+          letterSpacing: "0.6px",
           marginBottom: 6,
         }}>
         <span>{caseCode(item.id)}</span>
@@ -369,12 +370,11 @@ function FeedCard({ item }: { item: FeedItem }) {
             }}>
             <span
               style={{
-                fontFamily: MONO,
-                fontSize: 11,
+                fontFamily: UI_FONT,
+                fontSize: 13,
                 fontWeight: 700,
                 color: TEXT,
-                letterSpacing: "0.5px",
-                textTransform: "uppercase",
+                letterSpacing: 0,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -384,8 +384,8 @@ function FeedCard({ item }: { item: FeedItem }) {
             {item.handle && (
               <span
                 style={{
-                  fontFamily: MONO,
-                  fontSize: 10,
+                  fontFamily: UI_FONT,
+                  fontSize: 12,
                   color: TEXT_FAINT,
                   whiteSpace: "nowrap",
                 }}>
@@ -396,9 +396,9 @@ function FeedCard({ item }: { item: FeedItem }) {
           <p
             style={{
               margin: "6px 0 8px",
-              fontFamily: MONO,
-              fontSize: 12.5,
-              lineHeight: 1.5,
+              fontFamily: UI_FONT,
+              fontSize: 14,
+              lineHeight: 1.6,
               color: TEXT,
               ...(expanded
                 ? {}
@@ -462,13 +462,13 @@ function FeedCard({ item }: { item: FeedItem }) {
             {item.sourceCount > 0 && (
               <span
                 style={{
-                  fontFamily: MONO,
-                  fontSize: 10,
+                  fontFamily: UI_FONT,
+                  fontSize: 11.5,
                   color: TEXT_DIM,
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  letterSpacing: "0.6px",
+                  letterSpacing: 0,
                 }}>
                 <LinkIcon />
                 {item.sourceCount} SIGINT
@@ -491,15 +491,15 @@ function ExpandedDetails({ item }: { item: FeedItem }) {
         marginTop: 10,
         paddingTop: 10,
         borderTop: `1px dashed ${BORDER}`,
-        fontFamily: MONO,
+        fontFamily: UI_FONT,
       }}>
       {showOriginal && (
         <div style={{ marginBottom: 10 }}>
           <SectionLabel>ORIGINAL TRANSMISSION</SectionLabel>
           <div
             style={{
-              fontSize: 11.5,
-              lineHeight: 1.5,
+              fontSize: 13,
+              lineHeight: 1.6,
               color: TEXT_DIM,
               fontStyle: "italic",
               whiteSpace: "pre-wrap",
@@ -535,10 +535,10 @@ function ExpandedDetails({ item }: { item: FeedItem }) {
             onClick={(e) => e.stopPropagation()}
             style={{
               fontFamily: MONO,
-              fontSize: 10,
+              fontSize: 11.5,
               color: AMBER,
               textDecoration: "none",
-              letterSpacing: "0.8px",
+              letterSpacing: "0.5px",
               textTransform: "uppercase",
               fontWeight: 700,
             }}>
@@ -572,9 +572,9 @@ function ClaimRow({ index, claim }: { index: number; claim: ClaimResult }) {
         <span
           style={{
             fontFamily: MONO,
-            fontSize: 9,
+            fontSize: 10,
             color: TEXT_FAINT,
-            letterSpacing: "1px",
+            letterSpacing: "0.8px",
           }}>
           CLAIM #{String(index).padStart(2, "0")}
         </span>
@@ -589,9 +589,9 @@ function ClaimRow({ index, claim }: { index: number; claim: ClaimResult }) {
             borderRadius: 3,
             padding: "2px 6px",
             fontFamily: MONO,
-            fontSize: 9,
+            fontSize: 9.5,
             fontWeight: 700,
-            letterSpacing: "1.2px",
+            letterSpacing: "1px",
             textTransform: "uppercase",
           }}>
           <span
@@ -607,9 +607,9 @@ function ClaimRow({ index, claim }: { index: number; claim: ClaimResult }) {
       </div>
       <div
         style={{
-          fontFamily: MONO,
-          fontSize: 11.5,
-          lineHeight: 1.5,
+          fontFamily: UI_FONT,
+          fontSize: 13,
+          lineHeight: 1.55,
           color: TEXT,
           marginBottom: claim.explanation ? 6 : 0,
         }}>
@@ -618,16 +618,16 @@ function ClaimRow({ index, claim }: { index: number; claim: ClaimResult }) {
       {claim.explanation && (
         <div
           style={{
-            fontFamily: MONO,
-            fontSize: 10.5,
-            lineHeight: 1.5,
+            fontFamily: UI_FONT,
+            fontSize: 12.5,
+            lineHeight: 1.55,
             color: TEXT_DIM,
           }}>
           <span
             style={{
               color: AMBER,
               fontWeight: 700,
-              letterSpacing: "1px",
+              letterSpacing: "0.4px",
               marginRight: 6,
             }}>
             ANALYSIS:
@@ -652,15 +652,15 @@ function ClaimRow({ index, claim }: { index: number; claim: ClaimResult }) {
               onClick={(e) => e.stopPropagation()}
               title={s.title || s.url}
               style={{
-                fontFamily: MONO,
-                fontSize: 9.5,
+                fontFamily: UI_FONT,
+                fontSize: 11,
                 color: TEXT_DIM,
                 background: CARD,
                 border: `1px solid ${BORDER}`,
                 borderRadius: 3,
                 padding: "2px 6px",
                 textDecoration: "none",
-                letterSpacing: "0.4px",
+                letterSpacing: 0,
                 maxWidth: 200,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
