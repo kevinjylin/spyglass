@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     allowed_origins: str = "http://localhost:3000"
 
-    gemma_rewrite_model: str = "gemma-4-26b-a4b-it-maas"
-    gemma_extract_model: str = "gemma-4-26b-a4b-it-maas"
+    gemma_rewrite_model: str = "gemini-2.5-flash"
+    gemma_extract_model: str = "gemini-2.5-flash"
     gemini_verify_model: str = "gemini-2.5-flash"
 
     verify_concurrency: int = 3

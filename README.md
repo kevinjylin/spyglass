@@ -60,6 +60,12 @@ Credentials](https://cloud.google.com/docs/authentication/application-default-cr
 If you see *“Your default credentials were not found”*, do this on your machine:
 
 1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) if needed.
+   On macOS with Homebrew (`brew install --cask google-cloud-sdk`), **`gcloud` is not on
+   your `PATH` until you source the SDK** — add this to `~/.zshrc` (then open a new terminal):
+   ```bash
+   source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"
+   source "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"
+   ```
 2. `gcloud auth application-default login` — stores user credentials for local use.
 3. `gcloud config set project YOUR_GCP_PROJECT_ID` (same value as `GCP_PROJECT` in `.env`).
 4. In Cloud Console, enable **Vertex AI API** for that project and grant your user (or

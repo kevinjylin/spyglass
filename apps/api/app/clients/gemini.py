@@ -61,7 +61,7 @@ def _build_payload(
     if response_mime_type:
         payload["generationConfig"]["responseMimeType"] = response_mime_type
     if grounded:
-        payload["tools"] = [{"googleSearchRetrieval": {}}]
+        payload["tools"] = [{"googleSearch": {}}]
     return payload
 
 
