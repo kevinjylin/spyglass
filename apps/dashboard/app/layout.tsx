@@ -3,7 +3,7 @@ import Link from "next/link"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "precitrus",
+  title: "SpyGlass Dashboard",
   description: "Live fact-check dashboard for X / Twitter posts.",
 }
 

@@ -18,6 +18,9 @@ const MONO =
   "'American Typewriter', 'Courier Prime', 'Courier New', Courier, 'Lucida Console', monospace"
 const UI_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
+
+const DASHBOARD_URL = "http://localhost:3001"
+
 const VERDICT_COLORS: Record<
   Verdict,
   { bg: string; fg: string; dot: string; border: string }
@@ -261,6 +264,29 @@ function Popup() {
                 }}>
                 <GearIcon />
               </button>
+              <a
+                href={DASHBOARD_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open dashboard"
+                title="Open dashboard"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: `1px solid ${BORDER}`,
+                  background: CARD,
+                  color: TEXT_DIM,
+                  display: "grid",
+                  placeItems: "center",
+                  textDecoration: "none",
+                  fontFamily: MONO,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  letterSpacing: 0,
+                }}>
+                D
+              </a>
             </div>
           </div>
 
