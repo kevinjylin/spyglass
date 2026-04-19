@@ -41,6 +41,15 @@ export interface TweetRow {
   metadata_captured_at: string | null
 }
 
+export interface FalseTweetView {
+  id: string
+  handle: string | null
+  authorName: string | null
+  snippet: string
+  views: number
+  url: string | null
+}
+
 export interface SiteStats {
   total_tweets: number
   last_24h: number
@@ -49,4 +58,8 @@ export interface SiteStats {
   fact_claims: number
   opinion_claims: number
   activity: DailyCount[]
+  false_tweet_views: FalseTweetView[]
+  false_tweets_with_views: number
+  avg_views_false: number | null
+  avg_views_other: number | null
 }

@@ -1,5 +1,12 @@
 import { createClient } from "@supabase/supabase-js"
-import type { Verdict, VerdictBreakdown, DailyCount, TweetRow, SiteStats } from "./types"
+import type {
+  Verdict,
+  VerdictBreakdown,
+  DailyCount,
+  TweetRow,
+  SiteStats,
+  FalseTweetView,
+} from "./types"
 
 const VERDICTS: Verdict[] = ["true", "false", "misleading", "unverifiable", "opinion"]
 
@@ -27,6 +34,9 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     { count: fact_claims },
     { count: opinion_claims },
     { data: activityRows },
+    { data: falseViewRows },
+    { data: falseAvgRows },
+    { data: otherAvgRows },
     ...verdictResults
   ] = await Promise.all([
     sb.from("tweets").select("*", { count: "exact", head: true }),
@@ -38,6 +48,24 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
       .select("created_at")
       .gte("created_at", thirtyDaysAgo.toISOString())
       .order("created_at", { ascending: true }),
+    // Top false tweets by view count (for the popularity-vs-falseness bar chart)
+    sb.from("tweets")
+      .select("id, text, neutral_text, author_handle, author_name, url, view_count")
+      .eq("overall_verdict", "false")
+      .not("view_count", "is", null)
+      .order("view_count", { ascending: false })
+      .limit(15),
+    // All false tweets' view counts (for average + reference)
+    sb.from("tweets")
+      .select("view_count")
+      .eq("overall_verdict", "false")
+      .not("view_count", "is", null),
+    // All non-false tweets' view counts (for comparison average)
+    sb.from("tweets")
+      .select("view_count")
+      .neq("overall_verdict", "false")
+      .not("overall_verdict", "is", null)
+      .not("view_count", "is", null),
     ...VERDICTS.map((v) =>
       sb.from("tweets").select("*", { count: "exact", head: true }).eq("overall_verdict", v)
     ),
@@ -65,6 +93,39 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     return { date: key, count: dayMap.get(key) || 0 }
   })
 
+  // Shape false-tweet bar chart rows
+  type RawFalseRow = {
+    id: string
+    text: string | null
+    neutral_text: string | null
+    author_handle: string | null
+    author_name: string | null
+    url: string | null
+    view_count: number | null
+  }
+  const false_tweet_views: FalseTweetView[] = ((falseViewRows || []) as RawFalseRow[]).map((r) => {
+    const rawText = (r.neutral_text ?? r.text ?? "").trim()
+    const snippet = rawText.length > 96 ? `${rawText.slice(0, 95)}…` : rawText
+    return {
+      id: r.id,
+      handle: r.author_handle,
+      authorName: r.author_name,
+      snippet,
+      views: r.view_count ?? 0,
+      url: r.url,
+    }
+  })
+
+  // Averages (null when no data)
+  const avgOf = (rows: { view_count: number | null }[] | null): number | null => {
+    if (!rows || rows.length === 0) return null
+    const total = rows.reduce((s, r) => s + (r.view_count ?? 0), 0)
+    return Math.round(total / rows.length)
+  }
+  const avg_views_false = avgOf(falseAvgRows as { view_count: number | null }[] | null)
+  const avg_views_other = avgOf(otherAvgRows as { view_count: number | null }[] | null)
+  const false_tweets_with_views = (falseAvgRows as unknown[] | null)?.length || 0
+
   return {
     total_tweets: total_tweets || 0,
     last_24h: last_24h || 0,
@@ -73,5 +134,9 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     fact_claims: fact_claims || 0,
     opinion_claims: opinion_claims || 0,
     activity,
+    false_tweet_views,
+    false_tweets_with_views,
+    avg_views_false,
+    avg_views_other,
   }
 }

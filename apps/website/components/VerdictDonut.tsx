@@ -35,6 +35,9 @@ interface Props {
 
 export function VerdictDonut({ data, total }: Props) {
   const ref = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<SVGSVGElement>(null)
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
     if (!ref.current) return
@@ -111,6 +114,42 @@ export function VerdictDonut({ data, total }: Props) {
       ([, v]) => v > 0
     )
 
+    const POP = 10
+    const OUTER = radius - 12
+
+    // helpers for connector line bookkeeping
+    const setConnector = (mid: number, key: string) => {
+      const container = containerRef.current
+      const overlay = overlayRef.current
+      const row = rowRefs.current[key]
+      if (!container || !overlay || !row) return
+      const cRect = container.getBoundingClientRect()
+      const rRect = row.getBoundingClientRect()
+      // slice outer edge in container coords (donut SVG occupies 0..200 in col 1)
+      const edge = OUTER + POP
+      const sx = radius + Math.sin(mid) * edge
+      const sy = radius - Math.cos(mid) * edge
+      // row endpoint: left edge, vertically centered
+      const ex = rRect.left - cRect.left
+      const ey = rRect.top - cRect.top + rRect.height / 2
+      d3.select(overlay)
+        .select<SVGLineElement>("line.vw-connector")
+        .attr("x1", sx)
+        .attr("y1", sy)
+        .attr("x2", ex)
+        .attr("y2", ey)
+        .style("opacity", 1)
+    }
+    const clearConnector = () => {
+      d3.select(overlayRef.current)
+        .select<SVGLineElement>("line.vw-connector")
+        .style("opacity", 0)
+    }
+    const boldRow = (key: string, on: boolean) => {
+      const row = rowRefs.current[key]
+      if (row) row.classList.toggle("vw-row-active", on)
+    }
+
     if (entries.length > 0 && total > 0) {
       const pie = d3
         .pie<[string, number]>()
@@ -119,22 +158,60 @@ export function VerdictDonut({ data, total }: Props) {
       const arc = d3
         .arc<d3.PieArcDatum<[string, number]>>()
         .innerRadius(inner)
-        .outerRadius(radius - 12)
+        .outerRadius(OUTER)
 
       const g = svg.append("g").attr("transform", `translate(${radius},${radius})`)
-      g.selectAll("path")
+      const paths = g
+        .selectAll("path")
         .data(pie(entries))
         .join("path")
         .attr("d", arc)
         .attr("fill", (d) => `url(#${PATTERN_IDS[d.data[0]] ?? "vw-h2"})`)
         .attr("stroke", "#1a1612")
         .attr("stroke-width", 1.2)
+        .style("cursor", "pointer")
+        .style(
+          "transition",
+          "transform 180ms ease-out, filter 180ms ease-out, stroke-width 120ms ease-out"
+        )
+
+      // native SVG tooltip (verdict + count)
+      paths.append("title").text(
+        (d) =>
+          `${LABELS[d.data[0]] ?? d.data[0]} · ${d.data[1].toLocaleString()} (${
+            total > 0 ? Math.round((d.data[1] / total) * 100) : 0
+          }%)`
+      )
+
+      paths
+        .on("mouseenter", function (_, d) {
+          const key = d.data[0]
+          const mid = (d.startAngle + d.endAngle) / 2
+          const tx = Math.sin(mid) * POP
+          const ty = -Math.cos(mid) * POP
+          d3.select(this)
+            .style("transform", `translate(${tx}px, ${ty}px)`)
+            .style("filter", "drop-shadow(0 2px 3px rgba(26,22,18,0.25))")
+            .attr("stroke-width", 2.6) // bolded outline
+            .raise()
+          setConnector(mid, key)
+          boldRow(key, true)
+        })
+        .on("mouseleave", function (_, d) {
+          const key = d.data[0]
+          d3.select(this)
+            .style("transform", "translate(0, 0)")
+            .style("filter", "none")
+            .attr("stroke-width", 1.2)
+          clearConnector()
+          boldRow(key, false)
+        })
     } else {
       svg
         .append("circle")
         .attr("cx", radius)
         .attr("cy", radius)
-        .attr("r", radius - 12)
+        .attr("r", OUTER)
         .attr("fill", "#e8decf")
         .attr("stroke", "#1a1612")
         .attr("stroke-width", 1.2)
@@ -171,13 +248,55 @@ export function VerdictDonut({ data, total }: Props) {
 
   return (
     <div
+      ref={containerRef}
       style={{
+        position: "relative",
         display: "grid",
         gridTemplateColumns: "200px 1fr",
         gap: 28,
         alignItems: "center",
       }}
     >
+      {/* Overlay SVG for leader line — spans the whole container */}
+      <svg
+        ref={overlayRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 3,
+          overflow: "visible",
+        }}
+      >
+        <line
+          className="vw-connector"
+          stroke="#1a1612"
+          strokeWidth={1.2}
+          strokeLinecap="round"
+          style={{ opacity: 0, transition: "opacity 150ms ease-out" }}
+        />
+      </svg>
+
+      {/* Scoped styles for the active-row bold state */}
+      <style>{`
+        .vw-row-active .key-label,
+        .vw-row-active .key-value {
+          font-weight: 700;
+          color: var(--ink);
+        }
+        .vw-row-active .key-dot {
+          transform: scale(1.25);
+        }
+        .key-row {
+          transition: color 150ms ease-out;
+        }
+        .key-dot {
+          transition: transform 150ms ease-out;
+        }
+      `}</style>
+
       <div style={{ position: "relative", width: 200, height: 200 }}>
         <svg ref={ref} style={{ width: "100%", height: "100%" }} />
         <div
@@ -222,7 +341,13 @@ export function VerdictDonut({ data, total }: Props) {
           const value = data[k] || 0
           const pct = total > 0 ? (value / total) * 100 : 0
           return (
-            <div key={k} className="key-row">
+            <div
+              key={k}
+              ref={(el) => {
+                rowRefs.current[k] = el
+              }}
+              className="key-row"
+            >
               <span className="key-dot" />
               <span className="key-label">{LABELS[k]}</span>
               <span className="key-track">
