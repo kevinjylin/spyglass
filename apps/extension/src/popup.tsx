@@ -29,53 +29,30 @@ interface FeedItem {
   sourceCount: number
 }
 
-const MOCK_FEED: FeedItem[] = [
-  {
-    id: "1",
-    author: "Jane Doe",
-    handle: "@janedoe",
-    text: "New study claims coffee reduces the risk of heart disease by 40% in adults over 50.",
-    verdict: "misleading",
-    checkedAt: Date.now() - 1000 * 60 * 3,
-    sourceCount: 3,
-  },
-  {
-    id: "2",
-    author: "News Wire",
-    handle: "@newswire",
-    text: "The moon is on average about 384,400 km from Earth.",
-    verdict: "true",
-    checkedAt: Date.now() - 1000 * 60 * 12,
-    sourceCount: 2,
-  },
-  {
-    id: "3",
-    author: "Hot Takes",
-    handle: "@hottakes",
-    text: "Pineapple absolutely belongs on pizza and I will die on this hill.",
-    verdict: "opinion",
-    checkedAt: Date.now() - 1000 * 60 * 40,
-    sourceCount: 0,
-  },
-  {
-    id: "4",
-    author: "Rumor Mill",
-    handle: "@rumormill",
-    text: "The Great Wall of China is visible from space with the naked eye.",
-    verdict: "false",
-    checkedAt: Date.now() - 1000 * 60 * 60 * 2,
-    sourceCount: 4,
-  },
-  {
-    id: "5",
-    author: "Deep Sea Daily",
-    handle: "@deepsea",
-    text: "Breaking: new species of bioluminescent jellyfish spotted near the Mariana Trench.",
-    verdict: "unverifiable",
-    checkedAt: Date.now() - 1000 * 60 * 60 * 5,
-    sourceCount: 1,
-  },
-]
+interface StoredFeedEntry {
+  id: string
+  handle: string | null
+  text: string
+  verdict: Verdict
+  checkedAt: number
+  sourceCount: number
+  url: string | null
+}
+
+const FEED_KEY = "feed"
+
+function toFeedItem(entry: StoredFeedEntry): FeedItem {
+  const handle = entry.handle?.trim() || ""
+  return {
+    id: entry.id,
+    author: handle || "Unknown",
+    handle: handle ? `@${handle}` : "",
+    text: entry.text,
+    verdict: entry.verdict,
+    checkedAt: entry.checkedAt,
+    sourceCount: entry.sourceCount,
+  }
+}
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms
@@ -91,7 +68,7 @@ function timeAgo(ms: number): string {
 function Popup() {
   const [base, setBase] = useState(DEFAULT_API_BASE)
   const [health, setHealth] = useState<"unknown" | "ok" | "down">("unknown")
-  const feed = MOCK_FEED
+  const [feed, setFeed] = useState<FeedItem[]>([])
 
   useEffect(() => {
     void (async () => {
@@ -104,6 +81,23 @@ function Popup() {
         setHealth("down")
       }
     })()
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      const stored = await chrome.storage.local.get(FEED_KEY)
+      const raw = (stored?.[FEED_KEY] as StoredFeedEntry[] | undefined) || []
+      setFeed(raw.map(toFeedItem))
+    }
+    void load()
+    const listener = (
+      changes: { [k: string]: chrome.storage.StorageChange },
+      area: string
+    ) => {
+      if (area === "local" && changes[FEED_KEY]) void load()
+    }
+    chrome.storage.onChanged.addListener(listener)
+    return () => chrome.storage.onChanged.removeListener(listener)
   }, [])
 
   const healthColor =
@@ -158,7 +152,7 @@ function Popup() {
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>
-                precitrus
+                SpyGlass
               </div>
               <div style={{ fontSize: 11, color: "#64748b" }}>
                 Inline fact-check for X / Twitter

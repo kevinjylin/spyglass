@@ -1,6 +1,6 @@
 {
   "name": "spyglass-extension",
-  "displayName": "precitrus",
+  "displayName": "SpyGlass Extension",
   "version": "0.1.0",
   "description": "Inline fact-check badges on X / Twitter, powered by Gemini.",
   "scripts": {
@@ -24,7 +24,7 @@
     "typescript": "^5.4.5"
   },
   "manifest": {
-    "name": "precitrus",
+    "name": "SpyGlass Extension",
     "description": "Inline fact-check badges on X / Twitter, powered by Gemini.",
     "permissions": ["storage"],
     "host_permissions": [
