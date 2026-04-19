@@ -1,4 +1,5 @@
 /// <reference types="chrome" />
+import iconUrl from "data-base64:../assets/icon.png"
 import { useEffect, useState } from "react"
 import { DEFAULT_API_BASE, getApiBase } from "~lib/storage"
 import type { Verdict } from "~lib/types"
@@ -135,21 +136,18 @@ function Popup() {
             padding: "14px 16px 10px",
           }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
+            <img
+              src={iconUrl}
+              alt=""
+              width={30}
+              height={30}
               style={{
-                width: 30,
-                height: 30,
                 borderRadius: 10,
-                background: "linear-gradient(135deg, #fb923c 0%, #f59e0b 100%)",
-                display: "grid",
-                placeItems: "center",
-                color: "white",
-                fontWeight: 800,
-                fontSize: 15,
+                objectFit: "cover",
+                display: "block",
                 boxShadow: "0 2px 6px rgba(245,158,11,0.35)",
-              }}>
-              p
-            </div>
+              }}
+            />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px" }}>
                 SpyGlass
