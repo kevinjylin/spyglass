@@ -28,9 +28,30 @@ export interface CheckResponse {
   cached: boolean
 }
 
+export interface TweetLink {
+  url: string
+  label?: string | null
+}
+
+export interface TweetContext {
+  author_name?: string | null
+  author_handle?: string | null
+  author_avatar_url?: string | null
+  image_url?: string | null
+  media_urls?: string[]
+  links?: TweetLink[]
+  reply_count?: number | null
+  retweet_count?: number | null
+  quote_count?: number | null
+  like_count?: number | null
+  view_count?: number | null
+  metadata_captured_at?: string | null
+}
+
 export interface CheckRequest {
   tweet_id: string
   text: string
   author_handle?: string | null
   url?: string | null
+  tweet_context?: TweetContext | null
 }

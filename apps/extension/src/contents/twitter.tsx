@@ -12,6 +12,7 @@ import {
   TWEET_ARTICLE,
   TWEET_TEXT,
   extractAuthorHandle,
+  extractTweetContext,
   extractTweetId,
   extractTweetText,
   extractTweetUrl,
@@ -50,11 +51,13 @@ const Badge = ({ anchor }: PlasmoCSUIProps) => {
     const text = extractTweetText(article)
     if (!tweetId || !text) return
 
+    const tweetContext = extractTweetContext(article)
     const payload = {
       tweet_id: tweetId,
       text,
-      author_handle: extractAuthorHandle(article),
+      author_handle: tweetContext.author_handle || extractAuthorHandle(article),
       url: extractTweetUrl(article),
+      tweet_context: tweetContext,
     }
 
     chrome.runtime.sendMessage({ type: "CHECK_TWEET", payload }, (resp) => {

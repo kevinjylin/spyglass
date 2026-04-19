@@ -23,6 +23,7 @@ interface FeedItem {
   id: string
   author: string
   handle: string
+  avatarUrl: string | null
   text: string
   verdict: Verdict
   checkedAt: number
@@ -32,6 +33,8 @@ interface FeedItem {
 interface StoredFeedEntry {
   id: string
   handle: string | null
+  authorName?: string | null
+  authorAvatarUrl?: string | null
   text: string
   verdict: Verdict
   checkedAt: number
@@ -43,10 +46,12 @@ const FEED_KEY = "feed"
 
 function toFeedItem(entry: StoredFeedEntry): FeedItem {
   const handle = entry.handle?.trim() || ""
+  const authorName = entry.authorName?.trim() || ""
   return {
     id: entry.id,
-    author: handle || "Unknown",
+    author: authorName || handle || "Unknown",
     handle: handle ? `@${handle}` : "",
+    avatarUrl: entry.authorAvatarUrl?.trim() || null,
     text: entry.text,
     verdict: entry.verdict,
     checkedAt: entry.checkedAt,
@@ -249,21 +254,7 @@ function FeedCard({ item }: { item: FeedItem }) {
         padding: 10,
       }}>
       <div style={{ display: "flex", gap: 10 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 999,
-            flexShrink: 0,
-            background: "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)",
-            display: "grid",
-            placeItems: "center",
-            color: "#475569",
-            fontWeight: 700,
-            fontSize: 13,
-          }}>
-          {item.author.charAt(0).toUpperCase()}
-        </div>
+        <FeedAvatar name={item.author} url={item.avatarUrl} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -363,6 +354,48 @@ function FeedCard({ item }: { item: FeedItem }) {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function FeedAvatar({ name, url }: { name: string; url: string | null }) {
+  const [failed, setFailed] = useState(false)
+  const initial = name.charAt(0).toUpperCase() || "?"
+  const shared = {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    flexShrink: 0,
+  }
+
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        style={{
+          ...shared,
+          objectFit: "cover",
+          background: "#e2e8f0",
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      style={{
+        ...shared,
+        background: "linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)",
+        display: "grid",
+        placeItems: "center",
+        color: "#475569",
+        fontWeight: 700,
+        fontSize: 13,
+      }}>
+      {initial}
     </div>
   )
 }

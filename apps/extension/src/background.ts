@@ -9,6 +9,8 @@ interface CheckMessage {
 export interface StoredFeedEntry {
   id: string
   handle: string | null
+  authorName: string | null
+  authorAvatarUrl: string | null
   text: string
   verdict: Verdict
   checkedAt: number
@@ -51,9 +53,12 @@ chrome.runtime.onMessage.addListener(
           0
         )
         try {
+          const context = msg.payload.tweet_context
           await saveFeedEntry({
             id: data.tweet_id,
-            handle: msg.payload.author_handle ?? null,
+            handle: context?.author_handle ?? msg.payload.author_handle ?? null,
+            authorName: context?.author_name ?? null,
+            authorAvatarUrl: context?.author_avatar_url ?? null,
             text: data.neutral_text || msg.payload.text,
             verdict: data.overall_verdict,
             checkedAt: Date.now(),
