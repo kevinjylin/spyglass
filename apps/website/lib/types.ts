@@ -50,6 +50,17 @@ export interface FalseTweetView {
   url: string | null
 }
 
+export interface EngagementPoint {
+  id: string
+  verdict: "true" | "false"
+  retweets: number
+  likes: number
+  handle: string | null
+  authorName: string | null
+  snippet: string
+  url: string | null
+}
+
 export interface SiteStats {
   total_tweets: number
   last_24h: number
@@ -62,4 +73,5 @@ export interface SiteStats {
   false_tweets_with_views: number
   avg_views_false: number | null
   avg_views_other: number | null
+  scatter_points: EngagementPoint[]
 }

@@ -1,7 +1,7 @@
 import { fetchSiteStats } from "@/lib/data"
 import { StatCard } from "@/components/StatCard"
 import { VerdictDonut } from "@/components/VerdictDonut"
-import { FalseTweetViews } from "@/components/FalseTweetViews"
+import { EngagementScatter } from "@/components/EngagementScatter"
 import { ClaimsBreakdown } from "@/components/ClaimsBreakdown"
 import { RecentFeed } from "@/components/RecentFeed"
 import { DossierTabs } from "@/components/DossierTabs"
@@ -60,18 +60,14 @@ export default async function HomePage() {
         <div className="folio">
           <div className="folio-head">
             <div>
-              <div className="folio-title">Popularity of false tweets</div>
+              <div className="folio-title">Engagement: true vs false</div>
               <div className="folio-sub">
-                Top false tweets by view count. Dashed line marks the average views of non-false
-                tweets, so you can see how far each bar reaches past it.
+                Each dot is a tweet — retweets on X, likes on Y. Green rings = graded true,
+                red fills = graded false.
               </div>
             </div>
           </div>
-          <FalseTweetViews
-            data={stats.false_tweet_views}
-            avgFalse={stats.avg_views_false}
-            avgOther={stats.avg_views_other}
-          />
+          <EngagementScatter data={stats.scatter_points} trimOutliers={2} />
         </div>
       </section>
 

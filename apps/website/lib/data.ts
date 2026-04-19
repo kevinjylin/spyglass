@@ -6,6 +6,7 @@ import type {
   TweetRow,
   SiteStats,
   FalseTweetView,
+  EngagementPoint,
 } from "./types"
 
 const VERDICTS: Verdict[] = ["true", "false", "misleading", "unverifiable", "opinion"]
@@ -37,6 +38,7 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     { data: falseViewRows },
     { data: falseAvgRows },
     { data: otherAvgRows },
+    { data: scatterRows },
     ...verdictResults
   ] = await Promise.all([
     sb.from("tweets").select("*", { count: "exact", head: true }),
@@ -66,6 +68,15 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
       .neq("overall_verdict", "false")
       .not("overall_verdict", "is", null)
       .not("view_count", "is", null),
+    // Scatter points: true + false tweets with retweet + like counts
+    sb.from("tweets")
+      .select(
+        "id, text, neutral_text, author_handle, author_name, url, overall_verdict, retweet_count, like_count"
+      )
+      .in("overall_verdict", ["true", "false"])
+      .not("retweet_count", "is", null)
+      .not("like_count", "is", null)
+      .limit(1000),
     ...VERDICTS.map((v) =>
       sb.from("tweets").select("*", { count: "exact", head: true }).eq("overall_verdict", v)
     ),
@@ -126,6 +137,35 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
   const avg_views_other = avgOf(otherAvgRows as { view_count: number | null }[] | null)
   const false_tweets_with_views = (falseAvgRows as unknown[] | null)?.length || 0
 
+  // Shape scatter points
+  type RawScatterRow = {
+    id: string
+    text: string | null
+    neutral_text: string | null
+    author_handle: string | null
+    author_name: string | null
+    url: string | null
+    overall_verdict: Verdict | null
+    retweet_count: number | null
+    like_count: number | null
+  }
+  const scatter_points: EngagementPoint[] = ((scatterRows || []) as RawScatterRow[])
+    .filter((r) => r.overall_verdict === "true" || r.overall_verdict === "false")
+    .map((r) => {
+      const rawText = (r.neutral_text ?? r.text ?? "").trim()
+      const snippet = rawText.length > 140 ? `${rawText.slice(0, 139)}…` : rawText
+      return {
+        id: r.id,
+        verdict: r.overall_verdict as "true" | "false",
+        retweets: r.retweet_count ?? 0,
+        likes: r.like_count ?? 0,
+        handle: r.author_handle,
+        authorName: r.author_name,
+        snippet,
+        url: r.url,
+      }
+    })
+
   return {
     total_tweets: total_tweets || 0,
     last_24h: last_24h || 0,
@@ -138,5 +178,6 @@ export async function fetchSiteStats(): Promise<SiteStats | null> {
     false_tweets_with_views,
     avg_views_false,
     avg_views_other,
+    scatter_points,
   }
 }
