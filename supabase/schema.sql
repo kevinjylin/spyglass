@@ -1,4 +1,4 @@
--- precitrus — Postgres schema + RLS policies
+-- SpyGlass — Postgres schema + RLS policies
 -- Apply in the Supabase SQL editor, or via `supabase db push` if using the CLI.
 
 create table if not exists tweets (
@@ -9,8 +9,25 @@ create table if not exists tweets (
   url text,
   overall_verdict text,
   created_at timestamptz default now(),
-  checked_at timestamptz
+  checked_at timestamptz,
+  -- Optional media + engagement captured by the extension
+  image_url text,
+  author_handle text,
+  author_name text,
+  like_count integer,
+  retweet_count integer,
+  reply_count integer,
+  view_count integer
 );
+
+-- Back-fill columns on existing deployments
+alter table tweets add column if not exists image_url text;
+alter table tweets add column if not exists author_handle text;
+alter table tweets add column if not exists author_name text;
+alter table tweets add column if not exists like_count integer;
+alter table tweets add column if not exists retweet_count integer;
+alter table tweets add column if not exists reply_count integer;
+alter table tweets add column if not exists view_count integer;
 
 create table if not exists claims (
   id bigserial primary key,

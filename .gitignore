@@ -23,4 +23,8 @@ apps/extension/.plasmo/
 .idea/
 .vscode/
 
-package-lock.json
+# Local SDK installers / archives (don't commit; keep outside the repo)
+*.tar.gz
+*.tgz
+*.zip
+google-cloud-sdk/
