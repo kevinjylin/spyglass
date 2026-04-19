@@ -1,5 +1,5 @@
 import { getApiBase } from "~lib/storage"
-import type { CheckRequest, CheckResponse, Verdict } from "~lib/types"
+import type { CheckRequest, CheckResponse, ClaimResult, Verdict } from "~lib/types"
 
 interface CheckMessage {
   type: "CHECK_TWEET"
@@ -12,10 +12,12 @@ export interface StoredFeedEntry {
   authorName: string | null
   authorAvatarUrl: string | null
   text: string
+  rawText: string
   verdict: Verdict
   checkedAt: number
   sourceCount: number
   url: string | null
+  claims: ClaimResult[]
 }
 
 const FEED_KEY = "feed"
@@ -60,10 +62,12 @@ chrome.runtime.onMessage.addListener(
             authorName: context?.author_name ?? null,
             authorAvatarUrl: context?.author_avatar_url ?? null,
             text: data.neutral_text || msg.payload.text,
+            rawText: msg.payload.text,
             verdict: data.overall_verdict,
             checkedAt: Date.now(),
             sourceCount,
             url: msg.payload.url ?? null,
+            claims: data.claims ?? [],
           })
         } catch {
           // storage errors shouldn't break the response flow
